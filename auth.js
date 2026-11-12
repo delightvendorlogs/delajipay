@@ -86,7 +86,7 @@ if (signupForm) {
     if (data.session) {
       go("dashboard.html");
     } else {
-      showMessage("Your account was created, but this Supabase project is still requiring email confirmation. To enable immediate dashboard access as requested, turn off Confirm email in Supabase → Authentication → Providers → Email. No confirmation code is shown on this website.", "warning");
+      showMessage("Your account has been created. Please check your email (including Spam) and click the confirmation link to verify your address. You will then be taken to your DelajiPay dashboard. If the email does not arrive, check your Supabase email settings.", "success");
       button.disabled = false; button.textContent = "Create account";
     }
   });
