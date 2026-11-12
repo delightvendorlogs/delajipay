@@ -54,3 +54,5 @@
 .wallet-actions a{padding:7px 11px}
 .dashboard-actions{display:none!important}
 @media(max-width:650px){.customer-menu summary{width:34px;height:34px;padding:4px}.customer-menu-panel{width:min(310px,84vw)}}
+
+.customer-menu[open]::before{content:none!important}
