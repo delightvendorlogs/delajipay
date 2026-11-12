@@ -1,5 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 
+// Customer side-drawer menu: close when the backdrop is tapped or Escape is pressed.
+document.addEventListener("click", (event) => {
+  const menu = document.querySelector(".customer-menu");
+  if (menu?.open && event.target === menu) menu.open = false;
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    const menu = document.querySelector(".customer-menu");
+    if (menu) menu.open = false;
+  }
+});
+
 const SUPABASE_URL = "https://fgkkzxfaxgkkcbkwbamx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ImuiMjql4SAceGSyvvgeww_YPC9X4I_";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
