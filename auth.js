@@ -1,19 +1,35 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 
-// Home dashboard drawer: close from its close control, backdrop or Escape.
-document.addEventListener("click", (event) => {
-  const menu = document.querySelector(".customer-menu");
-  if (!menu?.open) return;
-  if (event.target.closest(".customer-menu-backdrop, .customer-menu-close")) {
-    menu.open = false;
-  }
-});
+// Customer navigation drawer: slide in, lock page scroll and close safely.
+const menuButton = document.getElementById("menuButton");
+const mobileDrawer = document.getElementById("mobileDrawer");
+const drawerBackdrop = document.getElementById("drawerBackdrop");
+const closeDrawerButton = document.getElementById("closeDrawer");
+function openDrawer() {
+  if (!mobileDrawer || !drawerBackdrop || !menuButton) return;
+  mobileDrawer.classList.add("open");
+  drawerBackdrop.classList.add("open");
+  document.body.classList.add("drawer-open");
+  mobileDrawer.setAttribute("aria-hidden", "false");
+  drawerBackdrop.setAttribute("aria-hidden", "false");
+  menuButton.setAttribute("aria-expanded", "true");
+}
+function closeDrawer() {
+  if (!mobileDrawer || !drawerBackdrop || !menuButton) return;
+  mobileDrawer.classList.remove("open");
+  drawerBackdrop.classList.remove("open");
+  document.body.classList.remove("drawer-open");
+  mobileDrawer.setAttribute("aria-hidden", "true");
+  drawerBackdrop.setAttribute("aria-hidden", "true");
+  menuButton.setAttribute("aria-expanded", "false");
+}
+menuButton?.addEventListener("click", openDrawer);
+closeDrawerButton?.addEventListener("click", closeDrawer);
+drawerBackdrop?.addEventListener("click", closeDrawer);
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    const menu = document.querySelector(".customer-menu");
-    if (menu) menu.open = false;
-  }
+  if (event.key === "Escape") closeDrawer();
 });
+mobileDrawer?.querySelectorAll("a").forEach(link => link.addEventListener("click", closeDrawer));
 
 const SUPABASE_URL = "https://fgkkzxfaxgkkcbkwbamx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ImuiMjql4SAceGSyvvgeww_YPC9X4I_";
