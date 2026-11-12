@@ -39,6 +39,98 @@ async function guardPage() {
 }
 await guardPage();
 
+async function refreshWalletUI() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const balanceNodes = document.querySelectorAll("[data-wallet-balance]");
+  const { data: balanceKobo, error: balanceError } = await supabase.rpc("get_my_wallet_balance");
+  if (!balanceError) {
+    const formatted = new Intl.NumberFormat("en-NG", {
+      style: "currency", currency: "NGN", minimumFractionDigits: 2
+    }).format(Number(balanceKobo || 0) / 100);
+    balanceNodes.forEach((node) => { node.textContent = formatted; });
+  } else {
+    balanceNodes.forEach((node) => { node.textContent = "Unavailable"; });
+  }
+
+  const ledgerBox = $("#wallet-ledger");
+  if (!ledgerBox) return;
+  const { data: entries, error } = await supabase
+    .from("wallet_ledger")
+    .select("id, entry_type, amount_kobo, reference, description, status, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  ledgerBox.replaceChildren();
+  if (error) {
+    ledgerBox.textContent = "Wallet activity could not be loaded right now.";
+    return;
+  }
+  if (!entries?.length) {
+    ledgerBox.textContent = "No wallet activity yet.";
+    ledgerBox.className = "empty";
+    return;
+  }
+  ledgerBox.className = "ledger-list";
+  for (const entry of entries) {
+    const item = document.createElement("article");
+    item.className = "tile";
+    const title = document.createElement("b");
+    title.textContent = entry.description || (
+      entry.entry_type === "credit" ? "Wallet credit" :
+      entry.entry_type === "debit" ? "Wallet debit" : "Wallet reversal"
+    );
+    const meta = document.createElement("small");
+    const date = new Date(entry.created_at).toLocaleString("en-NG", {
+      dateStyle: "medium", timeStyle: "short"
+    });
+    meta.textContent = `${entry.entry_type.toUpperCase()} · ${entry.status} · ${date}`;
+    const amount = document.createElement("strong");
+    const sign = entry.entry_type === "debit" ? "−" : "+";
+    amount.textContent = sign + new Intl.NumberFormat("en-NG", {
+      style: "currency", currency: "NGN", minimumFractionDigits: 2
+    }).format(Number(entry.amount_kobo) / 100);
+    item.append(title, meta, amount);
+    ledgerBox.append(item);
+  }
+}
+
+const walletFundForm = $("#wallet-fund-form");
+if (walletFundForm) {
+  const amountInput = $("#wallet-fund-amount");
+  const submitButton = walletFundForm.querySelector('button[type="submit"]');
+  if (new URLSearchParams(window.location.search).get("payment") === "return") {
+    showMessage("We are checking your payment. Your wallet will update automatically after Paystack confirms it.", "success");
+  }
+  walletFundForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const amount = Number(amountInput?.value);
+    if (!Number.isFinite(amount) || amount < 100 || Math.round(amount * 100) !== amount * 100) {
+      showMessage("Enter an amount of at least ₦100, using no more than 2 decimal places.", "error");
+      return;
+    }
+    submitButton.disabled = true;
+    submitButton.textContent = "Connecting to Paystack…";
+    const { data, error } = await supabase.functions.invoke("paystack_init_payment", {
+      body: { amount }
+    });
+    if (error || data?.success !== true || !data?.authorization_url) {
+      showMessage(data?.error || error?.message || "We could not start your payment. Please try again.", "error");
+      submitButton.disabled = false;
+      submitButton.textContent = "Continue to Paystack";
+      return;
+    }
+    window.location.assign(data.authorization_url);
+  });
+}
+
+if (document.querySelector("[data-wallet-balance]") || $("#wallet-ledger")) {
+  await refreshWalletUI();
+}
+
+
 const loginForm = $("#login-form");
 if (loginForm) {
   loginForm.addEventListener("submit", async (event) => {
