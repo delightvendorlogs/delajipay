@@ -86,7 +86,7 @@ if (signupForm) {
     if (data.session) {
       go("dashboard.html");
     } else {
-      showMessage("Account created successfully! We’ve sent a verification link to your email address. Please check your inbox and click the link to activate your DelajiPay account. Didn’t receive the email? Check your spam folder.", "success");
+      showMessage("Your account has been created. Please check your email (including Spam) and click the confirmation link to verify your address. You will then be taken to your DelajiPay dashboard.", "success");
       button.disabled = false; button.textContent = "Create account";
     }
   });
