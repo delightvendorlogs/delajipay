@@ -73,7 +73,10 @@ if (signupForm) {
     button.disabled = true; button.textContent = "Creating account…";
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { full_name, phone } }
+      options: {
+        data: { full_name, phone },
+        emailRedirectTo: "https://delightvendorlogs.github.io/delajipay/dashboard.html"
+      }
     });
     if (error) {
       showMessage(error.message || "Account creation failed. Please try again.", "error");
