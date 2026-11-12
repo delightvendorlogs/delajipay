@@ -83,3 +83,6 @@
 body.drawer-open{overflow:hidden}
 @media(min-width:901px){.mobile-drawer{width:320px}}
 @media(max-width:650px){.topbar .menu-button{margin-right:10px}.drawer-backdrop{z-index:60}.mobile-drawer{z-index:70}.topbar .app-nav{z-index:50}}
+
+/* Keep the open drawer and backdrop above the sticky header and bottom navigation. */
+.topbar{z-index:20}
