@@ -1,1 +1,2 @@
-document.querySelector("button")?.addEventListener("click",()=>alert("Wallet funding will be enabled after secure payment gateway setup."));
+// DelajiPay preview interactions only. No real payment is initiated.
+document.querySelectorAll("form[data-preview]").forEach(form=>form.addEventListener("submit",event=>{event.preventDefault();const message=form.querySelector("[data-message]");if(message)message.textContent="Preview only — secure sign-in and provider connections are still being built.";}));
