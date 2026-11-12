@@ -1,9 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 
-// Customer side-drawer menu: close when the backdrop is tapped or Escape is pressed.
+// Home dashboard drawer: close from its close control, backdrop or Escape.
 document.addEventListener("click", (event) => {
   const menu = document.querySelector(".customer-menu");
-  if (menu?.open && event.target === menu) menu.open = false;
+  if (!menu?.open) return;
+  if (event.target.closest(".customer-menu-backdrop, .customer-menu-close")) {
+    menu.open = false;
+  }
 });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
