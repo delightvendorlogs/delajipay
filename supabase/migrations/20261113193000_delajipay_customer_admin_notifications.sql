@@ -1,3 +1,4 @@
+drop policy if exists "Admins can create customer notifications" on public.notifications;
 create policy "Admins can create customer notifications"
 on public.notifications for insert to authenticated
 with check ((select auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
