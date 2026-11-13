@@ -1,1 +1,84 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DelajiPay Admin</title><link rel="stylesheet" href="styles.css"></head><body data-admin-only="true"><header class="topbar"><a class="brand" href="index.html">Delaji<span>Pay</span> ADMIN</a><a href="index.html">Customer site ↗</a></header><main class="container"><div class="eyebrow">PLATFORM OPERATIONS</div><h1>Admin overview</h1><p class="muted">Separate administration pages for platform operations.</p><div class="notice">Admin authentication and role permissions are not connected. These pages are previews and must not be used to manage live customer funds.</div><section class="panel"><h2>Management pages</h2><div class="grid"><a class="tile" href="admin-customers.html">◎<b>Customers</b><small>Accounts and status</small></a><a class="tile" href="admin-wallets.html">₦<b>Wallet operations</b><small>Funding and ledger</small></a><a class="tile" href="admin-orders.html">↗<b>Transactions & orders</b><small>Payment status</small></a><a class="tile" href="admin-services.html">▦<b>Services & pricing</b><small>Availability and margins</small></a><a class="tile" href="admin-settings.html">⚙<b>Platform settings</b><small>Providers and configuration</small></a></div></section></main><footer class="app-footer"><a href="terms.html">Terms and Conditions</a><a href="privacy.html">Privacy Policy</a><a href="support.html">Help & Support</a><a href="dashboard.html">Customer dashboard</a></footer><script type="module" src="auth.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102b3d">
+<title>Admin overview · DelajiPay</title><link rel="stylesheet" href="styles.css">
+<style>
+.admin-shell{max-width:1160px;margin:34px auto;padding:0 22px 60px}
+.admin-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.admin-heading h1{font-size:clamp(28px,4vw,38px);letter-spacing:-1.3px;margin:7px 0}
+.admin-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 14px;font-weight:750;font-size:12px;cursor:pointer;color:var(--ink)}
+.admin-button.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.admin-identity{font-size:11px;color:var(--muted);margin-top:6px}
+.admin-alert{margin:20px 0;padding:13px 15px;border-radius:10px;background:#fff4e8;border:1px solid #f1d7b7;color:#80511f;font-size:13px}
+.admin-alert[hidden]{display:none}
+.admin-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0}
+.admin-stat{background:#fff;border:1px solid var(--line);border-radius:15px;padding:19px;min-height:112px}
+.admin-stat small{font-size:11px;color:var(--muted);font-weight:650}
+.admin-stat strong{display:block;font-size:25px;letter-spacing:-.7px;margin-top:10px;overflow-wrap:anywhere}
+.admin-columns{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+.admin-panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:21px;min-width:0}
+.admin-panel h2{font-size:16px;margin:0 0 15px}
+.admin-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.admin-panel-head a{font-size:11px;color:var(--brand);font-weight:800}
+.admin-service-row,.activity-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+.admin-service-row:first-child,.activity-row:first-child{border-top:0}
+.admin-service-row strong,.activity-row strong{font-size:12px}
+.pill{font-size:10px;font-weight:800;border-radius:99px;padding:5px 9px;white-space:nowrap}
+.pill.active{background:#e3f6ee;color:#08795e}.pill.inactive{background:#f1f3f4;color:#687984}
+.activity-row small{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.activity-row b{font-size:12px;white-space:nowrap}
+.admin-links{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.admin-links a{border:1px solid var(--line);background:#fff;padding:13px;border-radius:11px;font-size:12px;font-weight:750}
+.admin-links a span{display:block;color:var(--muted);font-size:10px;font-weight:500;margin-top:3px}
+@media(max-width:760px){.admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-columns{grid-template-columns:1fr}.admin-links{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:420px){.admin-stat{padding:14px}.admin-stat strong{font-size:21px}.admin-shell{padding-inline:16px}}
+</style>
+</head>
+<body data-admin-only="true">
+<header class="topbar">
+<a class="brand" href="admin.html">Delaji<span>Pay</span> ADMIN</a>
+<nav><a href="index.html">Customer site ↗</a><button class="admin-button" type="button" data-signout>Sign out</button></nav>
+</header>
+<main class="admin-shell">
+<div class="admin-heading">
+<div><div class="eyebrow">PLATFORM OPERATIONS</div><h1>Admin overview</h1><div class="admin-identity">Signed in as <strong id="admin-user">Administrator</strong> · <span id="admin-updated">Loading live data…</span></div></div>
+<div class="admin-actions"><button class="admin-button primary" id="admin-refresh" type="button">Refresh data</button></div>
+</div>
+<div class="admin-alert" id="admin-error" role="status" hidden></div>
+<section class="admin-stat-grid" aria-label="Platform statistics">
+<article class="admin-stat"><small>Total customer profiles</small><strong id="stat-customers">—</strong></article>
+<article class="admin-stat"><small>Successful wallet funding</small><strong id="stat-funding">—</strong></article>
+<article class="admin-stat"><small>Successful funding count</small><strong id="stat-payments">—</strong></article>
+<article class="admin-stat"><small>Pending payments and orders</small><strong id="stat-pending">—</strong></article>
+<article class="admin-stat"><small>Posted wallet credits in recent activity</small><strong id="stat-ledger">—</strong></article>
+<article class="admin-stat"><small>Service orders recorded</small><strong id="stat-orders">—</strong></article>
+</section>
+<div class="admin-columns">
+<section class="admin-panel">
+<div class="admin-panel-head"><h2>Recent wallet activity</h2><a href="admin-wallets.html">Open wallets ↗</a></div>
+<div id="admin-activity"><div class="empty">Loading activity…</div></div>
+</section>
+<section class="admin-panel">
+<div class="admin-panel-head"><h2>Service availability</h2><a href="admin-services.html">Manage services ↗</a></div>
+<div id="admin-services"><div class="empty">Loading services…</div></div>
+</section>
+</div>
+<section class="admin-panel" style="margin-top:16px">
+<h2>Management centre</h2>
+<div class="admin-links">
+<a href="admin-customers.html">Customers<span>Accounts and customer records</span></a>
+<a href="admin-wallets.html">Wallet operations<span>Funding and wallet ledger</span></a>
+<a href="admin-orders.html">Transactions & orders<span>Payment and service status</span></a>
+<a href="admin-services.html">Services & pricing<span>Service availability</span></a>
+<a href="admin-settings.html">Platform settings<span>Configuration and controls</span></a>
+<a href="support.html">Customer support<span>Support requests</span></a>
+</div>
+</section>
+</main>
+<footer class="footer">DelajiPay administration · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a></footer>
+<script type="module" src="auth.js"></script>
+<script type="module" src="admin.js"></script>
+</body></html>
