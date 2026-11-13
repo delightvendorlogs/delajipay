@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>DelajiPay · Secure Admin Setup</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#f4f7fb;color:#172033;font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+    main{width:min(100%,480px);padding:28px;border:1px solid #e2e8f0;border-radius:20px;background:#fff;box-shadow:0 18px 55px #10213b12}
+    h1{margin:0 0 8px;font-size:25px}p{color:#526078}.email{font-weight:700;color:#172033;overflow-wrap:anywhere}
+    button{width:100%;border:0;border-radius:12px;padding:14px 18px;background:#123d32;color:#fff;font-weight:700;font-size:16px;cursor:pointer}
+    button:disabled{opacity:.6;cursor:wait}#status{padding:12px;border-radius:10px;background:#f1f5f9;min-height:48px;margin:18px 0;color:#263449}#status[data-kind=error]{background:#fff1f0;color:#9b1c1c}#status[data-kind=success]{background:#ecfdf3;color:#166534}
+    a{color:#155e75}small{color:#64748b}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Set up your DelajiPay Super Admin</h1>
+  <p>This one-time setup is restricted to the DelajiPay account below. Sign in with this account before continuing:</p>
+  <p class="email">delightvendorlogs@gmail.com</p>
+  <div id="status" role="status">Checking your DelajiPay sign-in…</div>
+  <button id="setup" type="button" disabled>Assign Super Admin access</button>
+  <p><small>This setup can only succeed once, while no administrator exists. It never asks for your password or any secret key.</small></p>
+  <p><a href="login.html?next=bootstrap-admin.html">Go to sign in</a></p>
+</main>
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
+  const supabase = createClient(
+    "https://fgkkzxfaxgkkcbkwbamx.supabase.co",
+    "sb_publishable_ImuiMjql4SAceGSyvvgeww_YPC9X4I_",
+    { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
+  );
+  const status = document.querySelector("#status");
+  const button = document.querySelector("#setup");
+  const say = (message, kind = "info") => {
+    status.textContent = message;
+    status.dataset.kind = kind;
+  };
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    say("Please sign in to DelajiPay with the account shown above, then return to this page.", "error");
+  } else if (user.email?.toLowerCase() !== "delightvendorlogs@gmail.com" ||
+             user.id !== "bb0f3569-9504-4cdc-9c67-000362ca9106") {
+    say("You are signed in with a different account. Sign out and use delightvendorlogs@gmail.com.", "error");
+  } else {
+    say("Signed in as the correct account. You can now assign Super Admin access.");
+    button.disabled = false;
+  }
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    button.textContent = "Securing your admin access…";
+    say("Verifying your account and assigning the role…");
+    const { data, error } = await supabase.functions.invoke("bootstrap_super_admin", { body: {} });
+    if (error || !data?.success) {
+      say(data?.error || error?.message || "Setup did not complete. Please try again or contact support.", "error");
+      button.disabled = false;
+      button.textContent = "Try again";
+      return;
+    }
+    say(data.message + " You can then open the admin dashboard.", "success");
+    button.textContent = "Super Admin assigned";
+    await supabase.auth.signOut();
+  });
+</script>
+</body>
+</html>
