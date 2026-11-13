@@ -92,7 +92,11 @@ async function refreshWalletUI() {
     amount.textContent = sign + new Intl.NumberFormat("en-NG", {
       style: "currency", currency: "NGN", minimumFractionDigits: 2
     }).format(Number(entry.amount_kobo) / 100);
-    item.append(title, meta, amount);
+    const details = document.createElement("a");
+    details.className = "ledger-entry-link";
+    details.href = "transaction-details.html?id=" + encodeURIComponent(entry.id);
+    details.append(title, meta, amount);
+    item.append(details);
     ledgerBox.append(item);
   }
 }
@@ -307,6 +311,7 @@ async function loadTransactionDetails() {
     panel.textContent = "We couldn't find this transaction in your account.";
     return;
   }
+  panel.remove();
   const values = {
     "detail-description": row.description || "Wallet transaction",
     "detail-reference": row.reference,
@@ -413,3 +418,36 @@ await loadTransactions();
 await loadTransactionDetails();
 await loadProfile();
 await loadNotifications();
+
+
+async function loadRecentActivity() {
+  const box = document.querySelector("[data-recent-transactions]");
+  if (!box) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { data: rows, error } = await supabase.from("wallet_ledger")
+    .select("id,entry_type,amount_kobo,reference,description,status,created_at")
+    .eq("user_id", user.id).order("created_at", { ascending: false }).limit(4);
+  box.replaceChildren();
+  if (error || !rows?.length) {
+    box.className = "empty";
+    box.textContent = error ? "Recent activity is temporarily unavailable." : "Your latest wallet activity will appear here.";
+    return;
+  }
+  box.className = "recent-activity";
+  for (const row of rows) {
+    const link = document.createElement("a");
+    link.className = "recent-activity-row";
+    link.href = "transaction-details.html?id=" + encodeURIComponent(row.id);
+    const title = document.createElement("strong");
+    title.textContent = row.description || (row.entry_type === "credit" ? "Wallet funding" : "Wallet payment");
+    const meta = document.createElement("small");
+    meta.textContent = dateNG(row.created_at);
+    const amount = document.createElement("b");
+    amount.className = row.entry_type === "debit" ? "amount-out" : "amount-in";
+    amount.textContent = (row.entry_type === "debit" ? "−" : "+") + moneyNGN(row.amount_kobo);
+    link.append(title, meta, amount);
+    box.append(link);
+  }
+}
+await loadRecentActivity();
