@@ -224,3 +224,192 @@ if (profileName) {
   const { data: { user } } = await supabase.auth.getUser();
   profileName.textContent = user?.user_metadata?.full_name || user?.email || "Customer";
 }
+
+
+// Live customer activity, transaction details, profile and notifications.
+const moneyNGN = (kobo) => new Intl.NumberFormat("en-NG", {
+  style: "currency", currency: "NGN", minimumFractionDigits: 2
+}).format(Number(kobo || 0) / 100);
+const dateNG = (value) => new Date(value).toLocaleString("en-NG", {
+  dateStyle: "medium", timeStyle: "short"
+});
+const safeText = (value, fallback = "—") => value == null || value === "" ? fallback : String(value);
+
+async function loadTransactions() {
+  const list = document.querySelector("[data-transactions-list]");
+  if (!list) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  list.textContent = "Loading your transactions…";
+  const { data: rows, error } = await supabase.from("wallet_ledger")
+    .select("id,entry_type,amount_kobo,reference,description,status,created_at")
+    .eq("user_id", user.id).order("created_at", { ascending: false }).limit(100);
+  if (error) {
+    list.className = "empty";
+    list.textContent = "Your transactions could not be loaded. Please refresh and try again.";
+    return;
+  }
+  const search = document.querySelector("#transaction-search");
+  const filter = document.querySelector("#transaction-filter");
+  const render = () => {
+    const q = (search?.value || "").trim().toLowerCase();
+    const kind = filter?.value || "all";
+    const filtered = (rows || []).filter(row => {
+      const text = [row.description, row.reference, row.status, row.entry_type].join(" ").toLowerCase();
+      return (kind === "all" || row.entry_type === kind) && (!q || text.includes(q));
+    });
+    list.replaceChildren();
+    if (!filtered.length) {
+      list.className = "empty";
+      list.textContent = rows?.length ? "No transactions match this search." : "Your wallet transactions will appear here after activity.";
+      return;
+    }
+    list.className = "transaction-list";
+    for (const row of filtered) {
+      const item = document.createElement("a");
+      item.className = "transaction-row";
+      item.href = "transaction-details.html?id=" + encodeURIComponent(row.id);
+      const left = document.createElement("div");
+      left.className = "transaction-main";
+      const title = document.createElement("strong");
+      title.textContent = row.description || (row.entry_type === "credit" ? "Wallet funding" : row.entry_type === "debit" ? "Wallet payment" : "Wallet adjustment");
+      const meta = document.createElement("span");
+      meta.textContent = dateNG(row.created_at) + " · " + safeText(row.reference);
+      const status = document.createElement("small");
+      status.className = "status-pill status-" + String(row.status || "pending").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+      status.textContent = safeText(row.status, "Pending");
+      left.append(title, meta, status);
+      const amount = document.createElement("b");
+      amount.className = row.entry_type === "debit" ? "amount-out" : "amount-in";
+      amount.textContent = (row.entry_type === "debit" ? "−" : "+") + moneyNGN(row.amount_kobo);
+      item.append(left, amount);
+      list.append(item);
+    }
+  };
+  search?.addEventListener("input", render);
+  filter?.addEventListener("change", render);
+  render();
+}
+
+async function loadTransactionDetails() {
+  const panel = document.querySelector("[data-transaction-detail]");
+  if (!panel) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  const id = new URLSearchParams(window.location.search).get("id");
+  if (!user || !id) {
+    panel.textContent = "This transaction link is missing or invalid.";
+    return;
+  }
+  const { data: row, error } = await supabase.from("wallet_ledger")
+    .select("id,entry_type,amount_kobo,reference,description,status,created_at,metadata")
+    .eq("id", id).eq("user_id", user.id).maybeSingle();
+  if (error || !row) {
+    panel.textContent = "We couldn't find this transaction in your account.";
+    return;
+  }
+  const values = {
+    "detail-description": row.description || "Wallet transaction",
+    "detail-reference": row.reference,
+    "detail-type": String(row.entry_type || "—").replace(/^./, c => c.toUpperCase()),
+    "detail-status": row.status,
+    "detail-date": dateNG(row.created_at),
+    "detail-amount": (row.entry_type === "debit" ? "−" : "+") + moneyNGN(row.amount_kobo)
+  };
+  for (const [id, value] of Object.entries(values)) {
+    const node = document.getElementById(id);
+    if (node) node.textContent = safeText(value);
+  }
+}
+
+async function loadProfile() {
+  const form = document.querySelector("#profile-form");
+  if (!form) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { data: profile } = await supabase.from("profiles")
+    .select("full_name,phone,created_at").eq("id", user.id).maybeSingle();
+  const name = form.querySelector("#profile-full-name");
+  const phone = form.querySelector("#profile-phone");
+  if (name) name.value = profile?.full_name || user.user_metadata?.full_name || "";
+  if (phone) phone.value = profile?.phone || user.user_metadata?.phone || "";
+  const email = document.querySelector("[data-profile-email]");
+  if (email) email.textContent = user.email || "—";
+  const joined = document.querySelector("[data-profile-joined]");
+  if (joined) joined.textContent = profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-NG", {dateStyle:"long"}) : "—";
+  const verified = document.querySelector("[data-profile-status]");
+  if (verified) verified.textContent = user.email_confirmed_at ? "Email verified" : "Email not verified";
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const full_name = name?.value.trim() || "";
+    const phoneValue = phone?.value.trim() || "";
+    if (!full_name) { showMessage("Please enter your name.", "error"); return; }
+    button.disabled = true; button.textContent = "Saving…";
+    const { error: authUpdateError } = await supabase.auth.updateUser({ data: { full_name, phone: phoneValue } });
+    if (authUpdateError) {
+      showMessage(authUpdateError.message || "Your profile could not be saved.", "error");
+      button.disabled = false; button.textContent = "Save changes";
+      return;
+    }
+    if (profile) {
+      const { error: profileError } = await supabase.from("profiles").update({ full_name, phone: phoneValue }).eq("id", user.id);
+      if (profileError) {
+        showMessage("Your account details were saved, but the profile record could not be refreshed. Please contact support if this continues.", "warning");
+        button.disabled = false; button.textContent = "Save changes";
+        return;
+      }
+    }
+    showMessage("Your profile has been updated.", "success");
+    button.disabled = false; button.textContent = "Save changes";
+  });
+}
+
+async function loadNotifications() {
+  const list = document.querySelector("[data-notifications-list]");
+  if (!list) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { data: rows, error } = await supabase.from("notifications")
+    .select("id,title,body,category,read_at,created_at")
+    .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
+  list.replaceChildren();
+  if (error) {
+    list.className = "empty";
+    list.textContent = "Notifications could not be loaded. Please try again.";
+    return;
+  }
+  if (!rows?.length) {
+    list.className = "empty";
+    list.textContent = "You're all caught up. New account and payment updates will appear here.";
+    return;
+  }
+  list.className = "notification-list";
+  for (const row of rows) {
+    const card = document.createElement("article");
+    card.className = "notification-row" + (row.read_at ? "" : " notification-unread");
+    const title = document.createElement("strong");
+    title.textContent = row.title;
+    const body = document.createElement("p");
+    body.textContent = row.body;
+    const meta = document.createElement("small");
+    meta.textContent = safeText(row.category) + " · " + dateNG(row.created_at);
+    card.append(title, body, meta);
+    if (!row.read_at) {
+      const button = document.createElement("button");
+      button.type = "button"; button.className = "text-button"; button.textContent = "Mark as read";
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        const { error: updateError } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", row.id).eq("user_id", user.id);
+        if (updateError) { button.disabled = false; showMessage("Could not update this notification.", "error"); return; }
+        card.classList.remove("notification-unread"); button.remove();
+      });
+      card.append(button);
+    }
+    list.append(card);
+  }
+}
+
+await loadTransactions();
+await loadTransactionDetails();
+await loadProfile();
+await loadNotifications();
