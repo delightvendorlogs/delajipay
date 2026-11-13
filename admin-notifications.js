@@ -13,7 +13,7 @@ async function loadFeed(){
  feed.className="";for(const n of events){const card=document.createElement("article");card.className="notify-item"+(n.read_at?"":" unread");const h=document.createElement("strong");h.textContent=n.title;const p=document.createElement("p");p.textContent=n.body;const small=document.createElement("small");small.textContent=date(n.created_at);card.append(h,p,small);feed.append(card);}
 }
 $("#broadcast-form").addEventListener("submit",async e=>{
- e.preventDefault();const button=e.currentTarget.querySelector("button");button.disabled=true;button.textContent="Sending…";
+ e.preventDefault();const form=e.currentTarget;const button=form.querySelector("button");button.disabled=true;button.textContent="Sending…";
  const title=$("#broadcast-title").value.trim(),body=$("#broadcast-body").value.trim(),category=$("#broadcast-category").value;
  const {data:customers,error}=await supabase.from("profiles").select("id");
  if(error){message("Could not retrieve customer accounts. No announcement was sent.",true);button.disabled=false;button.textContent="Send to all customers";return;}
@@ -23,7 +23,7 @@ $("#broadcast-form").addEventListener("submit",async e=>{
    let sent=0,failed=false;
    for(let i=0;i<recipients.length;i+=300){const batch=recipients.slice(i,i+300).map(user_id=>({user_id,title,body,category}));const {error:insertError}=await supabase.from("notifications").insert(batch);if(insertError){failed=true;break;}sent+=batch.length;}
    message(failed?"Some notifications may not have been sent. Check the notification list before retrying.":"Announcement sent to "+sent+" customer account(s).",failed);
-   if(!failed)e.currentTarget.reset();
+   if(!failed)form.reset();
  }
  button.disabled=false;button.textContent="Send to all customers";
 });
