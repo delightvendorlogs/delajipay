@@ -9,12 +9,14 @@ if(user){
  wrap.innerHTML='<a href="notifications.html" aria-label="Notifications" title="Notifications"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="dp-count" data-kind="notifications" hidden></span></a><a href="support.html" aria-label="Live chat support" title="Live chat"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 9 9 0 0 1-4-.9L3 21l1.9-5.5a9 9 0 0 1-.9-4A8.5 8.5 0 0 1 12.5 3H13a8.5 8.5 0 0 1 8 8.5Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg><span class="dp-count" data-kind="chat" hidden></span></a>';
  document.body.append(wrap);
  const notificationBadge=wrap.querySelector('[data-kind="notifications"]'),chatBadge=wrap.querySelector('[data-kind="chat"]');
- function paint(node,n){node.hidden=!(n>0);node.textContent=n>99?"99+":String(n);}
- async function refreshNotifications(){const {count,error}=await supabase.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",user.id).is("read_at",null);if(!error)paint(notificationBadge,Number(count||0));}
- async function refreshChat(){const {data,error}=await supabase.rpc("delajipay_support_unread_count");if(!error)paint(chatBadge,Number(data||0));}
+ function paint(node,n){const count=Number.isFinite(Number(n))?Math.max(0,Number(n)):0;node.hidden=count===0;node.textContent=count===0?"":count>99?"99+":String(count);}
+ async function refreshNotifications(){const {count,error}=await supabase.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",user.id).is("read_at",null);if(error){console.warn("Notification count unavailable:",error.message);paint(notificationBadge,0);return;}paint(notificationBadge,Number(count||0));}
+ async function refreshChat(){const {data,error}=await supabase.rpc("delajipay_support_unread_count");if(error){console.warn("Unread support reply count unavailable:",error.message);paint(chatBadge,0);return;}paint(chatBadge,Number(data||0));}
  await Promise.all([refreshNotifications(),refreshChat()]);
  supabase.channel("dashboard-badges-"+user.id)
   .on("postgres_changes",{event:"*",schema:"public",table:"notifications",filter:"user_id=eq."+user.id},refreshNotifications)
   .on("postgres_changes",{event:"*",schema:"public",table:"support_messages"},refreshChat)
   .subscribe();
+ window.addEventListener("focus",refreshChat);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshChat();});
 }
