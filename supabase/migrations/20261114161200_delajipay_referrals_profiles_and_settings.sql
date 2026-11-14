@@ -79,7 +79,10 @@ create policy "Users and admins read referral withdrawals" on public.referral_wi
   using (auth.uid() = user_id or (select (auth.jwt()->'app_metadata'->>'role')) = 'admin');
 
 revoke all on public.platform_settings from anon, authenticated;
-grant select, insert, update, delete on public.platform_settings to authenticated;
+grant select, update on public.platform_settings to authenticated;
+-- Referral attribution and generated codes are server-managed; customers may edit only their own contact fields.
+revoke update on public.profiles from authenticated;
+grant update(full_name, phone) on public.profiles to authenticated;
 revoke all on public.referral_rewards from anon, authenticated;
 grant select on public.referral_rewards to authenticated;
 revoke all on public.referral_withdrawals from anon, authenticated;
