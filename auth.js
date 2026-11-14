@@ -391,6 +391,8 @@ async function loadProfile() {
   const phone = form.querySelector("#profile-phone");
   if (name) name.value = profile?.full_name || user.user_metadata?.full_name || "";
   if (phone) phone.value = profile?.phone || user.user_metadata?.phone || "";
+  const heading = document.querySelector("[data-profile-heading]");
+  if (heading) heading.textContent = profile?.full_name || user.user_metadata?.full_name || "DelajiPay customer";
   const email = document.querySelector("[data-profile-email]");
   if (email) email.textContent = user.email || "—";
   const joined = document.querySelector("[data-profile-joined]");
