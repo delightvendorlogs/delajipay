@@ -37,7 +37,36 @@ async function guardPage() {
     go("dashboard.html");
   }
 }
+
 await guardPage();
+
+// Make the four customer tabs navigate reliably and mark the current section.
+const customerNav = document.querySelector(".topbar .app-nav");
+if (customerNav) {
+  const currentFile = (window.location.pathname.split("/").pop() || "dashboard.html").toLowerCase();
+  customerNav.querySelectorAll('a[href$=".html"]').forEach((link) => {
+    const target = link.getAttribute("href").split("/").pop().toLowerCase();
+    const section = target === "wallet.html" || target === "wallet-fund.html" || target === "wallet-history.html" ? "wallet.html"
+      : target === "transactions.html" || target === "transaction-details.html" ? "transactions.html"
+      : target === "profile.html" ? "profile.html"
+      : target === "dashboard.html" ? "dashboard.html" : null;
+    const currentSection = currentFile.startsWith("wallet") ? "wallet.html"
+      : currentFile.startsWith("transaction") ? "transactions.html"
+      : currentFile === "profile.html" ? "profile.html"
+      : currentFile === "dashboard.html" ? "dashboard.html" : null;
+    if (section && section === currentSection) {
+      link.classList.add("is-current");
+      link.setAttribute("aria-current", "page");
+    }
+    if (target === "dashboard.html") {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        window.location.assign(new URL("dashboard.html", document.baseURI).href);
+      });
+    }
+  });
+}
+
 
 async function refreshWalletUI() {
   const { data: { user } } = await supabase.auth.getUser();
