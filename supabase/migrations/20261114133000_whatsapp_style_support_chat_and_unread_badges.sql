@@ -31,3 +31,9 @@ grant execute on function public.delajipay_support_mark_read(uuid) to authentica
 grant execute on function public.delajipay_support_set_typing(uuid,boolean) to authenticated;
 grant execute on function public.delajipay_support_unread_count() to authenticated;
 grant execute on function public.delajipay_admin_support_unread_counts() to authenticated;
+do $$
+begin
+ if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='notifications') then
+  alter publication supabase_realtime add table public.notifications;
+ end if;
+end $$;
