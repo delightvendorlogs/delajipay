@@ -17,8 +17,8 @@ function setHeaders(names){headers=names;const tr=document.createElement("tr");n
 async function customers(){
  const {data,error}=await supabase.from("profiles").select("id,full_name,phone,referral_code,referred_by,created_at").order("created_at",{ascending:false}).limit(1000);if(error)throw error;
  rows=data||[];metric("Customer profiles",String(rows.length));metric("With referral code",String(rows.filter(x=>x.referral_code).length));metric("Referred customers",String(rows.filter(x=>x.referred_by).length));
- setHeaders(["Customer","Phone","Referral code","Referred by","Joined","Customer ID"]);
- renderRow=r=>{const tr=document.createElement("tr");cell(tr,r.full_name||"Unnamed customer");cell(tr,r.phone);cell(tr,r.referral_code);cell(tr,r.referred_by?String(r.referred_by).slice(0,8)+"…":"Direct signup");cell(tr,dt(r.created_at));cell(tr,r.id);return tr;};
+ setHeaders(["Customer","Phone","Referral code","Referred by","Joined","Customer ID","Account"]);
+ renderRow=r=>{const tr=document.createElement("tr");cell(tr,r.full_name||"Unnamed customer");cell(tr,r.phone);cell(tr,r.referral_code);cell(tr,r.referred_by?String(r.referred_by).slice(0,8)+"…":"Direct signup");cell(tr,dt(r.created_at));cell(tr,r.id);const action=cell(tr,"");const link=document.createElement("a");link.className="btn secondary";link.href="admin-customer-details.html?id="+encodeURIComponent(r.id);link.textContent="View account";action.append(link);return tr;};
 }
 async function wallets(){
  const [w,f,l]=await Promise.all([

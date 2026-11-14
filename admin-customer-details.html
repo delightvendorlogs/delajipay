@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102b3d"><title>Customer account · DelajiPay Admin</title><link rel="stylesheet" href="styles.css"><style>
+.detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.detail-card{border:1px solid var(--line);border-radius:12px;padding:15px;min-width:0}.detail-card small{display:block;color:var(--muted)}.detail-card strong{display:block;font-size:21px;margin-top:7px;overflow-wrap:anywhere}.detail-section{margin-top:18px}.detail-section h2{margin-bottom:10px}.admin-table-wrap{overflow-x:auto}.admin-table{width:100%;border-collapse:collapse;min-width:680px}.admin-table th,.admin-table td{text-align:left;padding:11px 9px;border-bottom:1px solid var(--line);font-size:12px;vertical-align:top}.admin-table th{color:var(--muted);font-size:10px;text-transform:uppercase}.detail-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.detail-meta div{padding:10px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.detail-meta small{display:block;color:var(--muted);margin-bottom:4px}.detail-empty{padding:18px;color:var(--muted)}@media(max-width:650px){.detail-grid{grid-template-columns:1fr 1fr}.detail-meta{grid-template-columns:1fr}}
+</style></head>
+<body data-admin-only="true"><header class="topbar"><a class="brand" href="admin.html">Delaji<span>Pay</span> ADMIN</a><nav><a href="admin-customers.html">Customers</a><a href="admin-wallets.html">Wallets</a><a href="admin-orders.html">Orders</a><button class="signout-btn" type="button" data-signout>Sign out</button></nav></header>
+<main class="container"><a class="back" href="admin-customers.html">← Back to customers</a><div class="eyebrow">CUSTOMER ACCOUNT</div><h1 id="customer-title">Loading customer…</h1><p class="muted" id="customer-subtitle">Review this customer's wallet, transactions and purchases.</p><div id="admin-page-message" class="notice" role="status" hidden></div>
+<section class="panel"><h2>Customer profile</h2><div class="detail-meta" id="customer-profile"><div>Loading profile…</div></div></section>
+<div class="detail-grid"><article class="detail-card"><small>Main wallet balance</small><strong id="main-balance">—</strong></article><article class="detail-card"><small>Wallet transactions</small><strong id="transaction-count">—</strong></article><article class="detail-card"><small>Purchases / orders</small><strong id="purchase-count">—</strong></article></div>
+<section class="panel detail-section"><h2>Main wallet</h2><p class="muted">Balance is calculated from posted wallet ledger entries (credits minus debits).</p><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Wallet ID</th><th>Currency</th><th>Created</th><th>Ledger balance</th></tr></thead><tbody id="wallet-body"><tr><td>Loading…</td></tr></tbody></table></div></section>
+<section class="panel detail-section"><h2>Customer transactions</h2><p class="muted">Wallet credits, debits, reversals and funding records.</p><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Type</th><th>Amount</th><th>Status</th><th>Reference / details</th><th>Date</th></tr></thead><tbody id="transactions-body"><tr><td>Loading…</td></tr></tbody></table></div></section>
+<section class="panel detail-section"><h2>Purchases and service orders</h2><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Service</th><th>Amount paid</th><th>Status</th><th>Customer reference</th><th>Recipient / details</th><th>Date</th></tr></thead><tbody id="orders-body"><tr><td>Loading…</td></tr></tbody></table></div></section>
+</main><footer class="footer">DelajiPay administration</footer>
+<script type="module" src="auth.js"></script>
+<script type="module">
+import {createClient} from "https://esm.sh/@supabase/supabase-js@2.81.1";
+const supabase=createClient("https://fgkkzxfaxgkkcbkwbamx.supabase.co","sb_publishable_ImuiMjql4SAceGSyvvgeww_YPC9X4I_",{auth:{persistSession:true,autoRefreshToken:true}});
+const $=id=>document.getElementById(id), id=new URLSearchParams(location.search).get("id");
+const money=k=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN"}).format(Number(k||0)/100);
+const date=v=>v?new Date(v).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"}):"—";
+const cell=(tr,v)=>{const td=document.createElement("td");td.textContent=v==null||v===""?"—":String(v);tr.append(td);return td;};
+const row=(body,values)=>{const tr=document.createElement("tr");values.forEach(v=>cell(tr,v));body.append(tr);};
+const empty=(body,n,message)=>{body.replaceChildren();const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=n;td.className="detail-empty";td.textContent=message;tr.append(td);body.append(tr);};
+function note(message){const n=$("admin-page-message");n.hidden=false;n.textContent=message;n.dataset.kind="error";}
+async function load(){
+ if(!id){note("Customer ID is missing from the page link.");return;}
+ const [p,w,l,f,o]=await Promise.all([
+  supabase.from("profiles").select("id,full_name,phone,referral_code,referred_by,created_at,updated_at").eq("id",id).maybeSingle(),
+  supabase.from("wallets").select("id,user_id,currency,created_at").eq("user_id",id).order("created_at",{ascending:false}),
+  supabase.from("wallet_ledger").select("id,wallet_id,entry_type,amount_kobo,reference,description,status,related_entry_id,metadata,created_at").eq("user_id",id).order("created_at",{ascending:false}).limit(1000),
+  supabase.from("funding_transactions").select("id,amount_kobo,currency,gateway,gateway_reference,status,created_at").eq("user_id",id).order("created_at",{ascending:false}).limit(500),
+  supabase.from("service_orders").select("id,service_code,amount_kobo,currency,customer_reference,provider_reference,status,recipient,created_at,updated_at").eq("user_id",id).order("created_at",{ascending:false}).limit(500)
+ ]);
+ for(const result of [p,w,l,f,o])if(result.error)throw result.error;
+ if(!p.data){$("customer-title").textContent="Customer not found";note("No customer profile was found for this account.");return;}
+ const profile=p.data,ledger=l.data||[],funds=f.data||[],orders=o.data||[];
+ $("customer-title").textContent=profile.full_name||"Unnamed customer";
+ $("customer-subtitle").textContent=profile.phone||"Customer account details";
+ const fields=[["Customer ID",profile.id],["Phone",profile.phone],["Referral code",profile.referral_code],["Referred by",profile.referred_by],["Joined",date(profile.created_at)],["Last profile update",date(profile.updated_at)]];
+ const meta=$("customer-profile");meta.replaceChildren();fields.forEach(([label,value])=>{const box=document.createElement("div"),small=document.createElement("small"),strong=document.createElement("strong");small.textContent=label;strong.textContent=value||"—";box.append(small,strong);meta.append(box);});
+ const posted=ledger.filter(x=>(x.status||"").toLowerCase()==="posted");
+ const balance=posted.reduce((sum,x)=>sum+(x.entry_type==="credit"?1:x.entry_type==="debit"?-1:0)*Number(x.amount_kobo||0),0);
+ $("main-balance").textContent=money(balance);$("transaction-count").textContent=String(ledger.length+funds.length);$("purchase-count").textContent=String(orders.length);
+ const walletBody=$("wallet-body");walletBody.replaceChildren();
+ if(!(w.data||[]).length)empty(walletBody,4,"No wallet account found.");
+ else (w.data||[]).forEach(wallet=>{const walletLedger=posted.filter(x=>x.wallet_id===wallet.id);const bal=walletLedger.reduce((sum,x)=>sum+(x.entry_type==="credit"?1:x.entry_type==="debit"?-1:0)*Number(x.amount_kobo||0),0);row(walletBody,[wallet.id,wallet.currency||"NGN",date(wallet.created_at),money(bal)]);});
+ const txBody=$("transactions-body");txBody.replaceChildren();
+ const transactions=[...ledger.map(x=>({...x,type:"Wallet "+x.entry_type,detail:x.description||x.reference||x.id})),...funds.map(x=>({...x,type:"Wallet funding · "+(x.gateway||"gateway"),detail:x.gateway_reference||x.id}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+ if(!transactions.length)empty(txBody,5,"No wallet transactions found.");
+ else transactions.forEach(x=>row(txBody,[x.type,money(x.amount_kobo),x.status,x.detail,date(x.created_at)]));
+ const orderBody=$("orders-body");orderBody.replaceChildren();
+ if(!orders.length)empty(orderBody,6,"No purchases or service orders found.");
+ else orders.forEach(x=>row(orderBody,[x.service_code,money(x.amount_kobo),x.status,x.customer_reference||x.provider_reference||x.id,typeof x.recipient==="object"?JSON.stringify(x.recipient):x.recipient,date(x.created_at)]));
+}
+load().catch(error=>{console.error(error);note(error.message||"Unable to load this customer's account details. Check administrator permissions.");});
+</script></body></html>
