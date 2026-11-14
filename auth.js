@@ -191,6 +191,7 @@ if (signupForm) {
     const email = $("#signup-email").value.trim();
     const phone = $("#signup-phone").value.trim();
     const password = $("#signup-password").value;
+    const referralCode = (new URLSearchParams(window.location.search).get("ref") || "").trim().toUpperCase();
     if (password.length < 8) {
       showMessage("Please use a password with at least 8 characters.", "error"); return;
     }
@@ -199,7 +200,7 @@ if (signupForm) {
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
-        data: { full_name, phone },
+        data: { full_name, phone, ...(referralCode ? { referral_code: referralCode } : {}) },
         emailRedirectTo: "https://delightvendorlogs.github.io/delajipay/dashboard.html"
       }
     });
@@ -385,13 +386,13 @@ async function loadProfile() {
       button.disabled = false; button.textContent = "Save changes";
       return;
     }
-    if (profile) {
-      const { error: profileError } = await supabase.from("profiles").update({ full_name, phone: phoneValue }).eq("id", user.id);
-      if (profileError) {
-        showMessage("Your account details were saved, but the profile record could not be refreshed. Please contact support if this continues.", "warning");
-        button.disabled = false; button.textContent = "Save changes";
-        return;
-      }
+    const profileWrite = profile
+      ? await supabase.from("profiles").update({ full_name, phone: phoneValue }).eq("id", user.id)
+      : await supabase.from("profiles").insert({ id: user.id, full_name, phone: phoneValue });
+    if (profileWrite.error) {
+      showMessage("Your account details were saved, but the profile record could not be created or refreshed. " + profileWrite.error.message, "warning");
+      button.disabled = false; button.textContent = "Save changes";
+      return;
     }
     showMessage("Your profile has been updated.", "success");
     button.disabled = false; button.textContent = "Save changes";

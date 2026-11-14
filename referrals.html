@@ -1,4 +1,78 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102b3d"><title>Refer and earn · DelajiPay</title><link rel="stylesheet" href="styles.css"></head>
-<body><header class="topbar"><a class="brand" href="index.html">Delaji<span>Pay</span></a><nav class="app-nav" aria-label="Main navigation"><a href="dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a><a href="wallet.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="15" rx="2"/><path d="M2.5 9h19M16 14h2"/></svg><span>Wallet</span></a><a href="transactions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/></svg><span>History</span></a><a href="profile.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profile</span></a><button class="signout-btn" type="button" data-signout>Sign out</button></nav></header>
-<main class="container"><a class="back" href="dashboard.html">← Back to dashboard</a><div class="eyebrow">REFERRALS</div><h1>Invite friends to DelajiPay</h1><p class="muted">Your referral link, eligible rewards and referral activity will be displayed on this page.</p><section class="panel"><h2>Your referral link</h2><input value="Available after account setup" readonly><p class="muted">Referral rewards and eligibility rules will be published before the programme is activated.</p><h2>Referral activity</h2><div class="empty">No referrals to display yet.</div></section><div class="notice">This feature will be available here soon. We’ll update this page when its service connection is ready.</div></main><footer class="app-footer"><a href="terms.html">Terms and Conditions</a><a href="privacy.html">Privacy Policy</a><a href="support.html">Help & Support</a><a href="dashboard.html">Dashboard</a></footer><footer class="app-footer"><a href="terms.html">Terms and Conditions</a><a href="privacy.html">Privacy Policy</a><a href="support.html">Help & Support</a><a href="dashboard.html">Dashboard</a></footer><script type="module" src="auth.js"></script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102b3d"><title>Refer and earn · DelajiPay</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.referral-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.referral-stat{border:1px solid var(--line);border-radius:13px;padding:15px;background:#fff;min-width:0}
+.referral-stat small{display:block;color:var(--muted);font-size:11px}
+.referral-stat strong{display:block;font-size:22px;margin-top:7px;overflow-wrap:anywhere}
+.referral-link-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.referral-link-row input{flex:1;min-width:190px}
+.referral-actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+.referral-actions button,.referral-actions a{font:inherit}
+.referral-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.referral-list{display:grid;gap:9px}
+.referral-item{border:1px solid var(--line);border-radius:11px;padding:12px}
+.referral-item strong{display:block}
+.referral-item small{color:var(--muted)}
+.referral-form{display:grid;gap:10px;margin-top:12px}
+.referral-form[hidden]{display:none}
+.referral-form label{display:grid;gap:5px}
+.referral-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.referral-tabs button[aria-pressed=true]{background:var(--brand);color:#fff}
+@media(max-width:650px){.referral-stats{grid-template-columns:1fr 1fr}.referral-columns{grid-template-columns:1fr}.referral-stat strong{font-size:19px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+<a class="brand" href="index.html">Delaji<span>Pay</span></a>
+<nav class="app-nav" aria-label="Main navigation">
+<a href="dashboard.html"><span>Home</span></a><a href="wallet.html"><span>Wallet</span></a>
+<a href="transactions.html"><span>History</span></a><a href="profile.html"><span>Profile</span></a>
+<button class="signout-btn" type="button" data-signout>Sign out</button>
+</nav>
+</header>
+<main class="container">
+<a class="back" href="dashboard.html">← Back to dashboard</a>
+<div class="eyebrow">REFER & EARN</div><h1>Invite friends to DelajiPay</h1>
+<p class="muted">Share your personal referral link. Earn a percentage of eligible profit when a referred customer completes a qualifying service.</p>
+<div id="referral-message" class="notice" role="status" hidden></div>
+<section class="panel">
+<h2>Your personal referral link</h2>
+<p class="muted">Your referral code belongs to your account and stays the same if the website domain changes.</p>
+<div class="referral-link-row"><input id="referral-code" readonly aria-label="Your referral code" placeholder="Loading your code…"><button id="copy-code" class="btn secondary" type="button">Copy code</button></div>
+<div class="referral-link-row" style="margin-top:9px"><input id="referral-link" readonly aria-label="Your referral link" placeholder="Preparing your link…"><button id="copy-link" class="btn" type="button">Copy link</button></div>
+<div class="referral-actions"><button id="share-link" class="btn secondary" type="button">Share invitation</button></div>
+</section>
+<section class="referral-stats">
+<article class="referral-stat"><small>People referred</small><strong id="referral-count">—</strong></article>
+<article class="referral-stat"><small>Available referral balance</small><strong id="referral-balance">—</strong></article>
+<article class="referral-stat"><small>Total earned</small><strong id="referral-earned">—</strong></article>
+</section>
+<section class="panel">
+<h2>Withdraw referral earnings</h2>
+<p class="muted">Transfer available referral earnings into your DelajiPay wallet or request a bank payout. Bank requests are reviewed by an administrator.</p>
+<div class="referral-actions"><button id="show-wallet-withdraw" class="btn" type="button">Withdraw to Wallet</button><button id="show-bank-withdraw" class="btn secondary" type="button">Bank Withdrawal</button></div>
+<form id="wallet-withdraw-form" class="referral-form" hidden>
+<label>Amount (₦)<input id="wallet-withdraw-amount" type="number" min="1" step="0.01" required placeholder="Enter amount"></label>
+<button class="btn" type="submit">Transfer to Wallet</button>
+</form>
+<form id="bank-withdraw-form" class="referral-form" hidden>
+<label>Amount (₦)<input id="bank-withdraw-amount" type="number" min="1" step="0.01" required placeholder="Enter amount"></label>
+<label>Bank name<input id="bank-name" required maxlength="80" placeholder="Your bank"></label>
+<label>Account name<input id="bank-account-name" required maxlength="100" placeholder="Name on account"></label>
+<label>Account number<input id="bank-account-number" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit account number"></label>
+<button class="btn" type="submit">Submit bank withdrawal</button>
+</form>
+</section>
+<div class="referral-tabs"><button type="button" class="btn secondary" data-ref-tab="people" aria-pressed="true">People referred</button><button type="button" class="btn secondary" data-ref-tab="earnings" aria-pressed="false">Earnings</button><button type="button" class="btn secondary" data-ref-tab="history" aria-pressed="false">Withdrawal history</button></div>
+<section class="panel" id="referral-tab-people"><h2>People you referred</h2><div id="referral-people" class="referral-list"><div class="empty">Loading referrals…</div></div></section>
+<section class="panel" id="referral-tab-earnings" hidden><h2>Referral earnings</h2><div id="referral-earnings" class="referral-list"><div class="empty">Loading earnings…</div></div></section>
+<section class="panel" id="referral-tab-history" hidden><h2>Withdrawal history</h2><div id="referral-history" class="referral-list"><div class="empty">Loading withdrawals…</div></div></section>
+</main>
+<footer class="app-footer"><a href="terms.html">Terms and Conditions</a><a href="privacy.html">Privacy Policy</a><a href="support.html">Help & Support</a><a href="dashboard.html">Dashboard</a></footer>
+<script type="module" src="auth.js"></script><script type="module" src="referrals.js"></script>
+</body></html>

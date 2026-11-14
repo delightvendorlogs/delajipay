@@ -1,4 +1,27 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102b3d"><title>Admin settings · DelajiPay</title><link rel="stylesheet" href="styles.css"></head>
-<body data-admin-only="true"><header class="topbar"><a class="brand" href="admin.html">Delaji<span>Pay</span> ADMIN</a><nav><a href="dashboard.html">Dashboard</a><a href="wallet.html">Wallet</a><a href="transactions.html">Transactions</a><a href="login.html">Sign in</a></nav></header>
-<main class="container"><a class="back" href="dashboard.html">← Back to dashboard</a><div class="eyebrow">ADMINISTRATION</div><h1>Platform settings</h1><p class="muted">Manage provider connections, referral rules, notifications and platform configuration.</p><section class="panel"><div class="empty">Configuration controls will be added behind role-based admin access.</div></section><div class="notice">Preview page: secure account access and live data connections are still being completed. No payment is processed here.</div></main><footer class="footer">DelajiPay · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="support.html">Support</a></footer><script type="module" src="auth.js"></script></body></html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#102b3d"><title>Admin settings · DelajiPay</title><link rel="stylesheet" href="styles.css">
+<style>
+.settings-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.settings-stat{border:1px solid var(--line);border-radius:13px;padding:15px;background:#fff}.settings-stat small{display:block;color:var(--muted);font-size:11px}.settings-stat strong{display:block;font-size:22px;margin-top:7px}
+.settings-form{display:grid;gap:13px;max-width:650px}.settings-form label{display:grid;gap:6px}.settings-actions{display:flex;gap:9px;flex-wrap:wrap}.admin-withdrawal{border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}.admin-withdrawal-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.admin-withdrawal small{display:block;color:var(--muted);margin-top:5px}.admin-withdrawal .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.admin-withdrawal button{border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer}.admin-withdrawal button.primary{background:var(--brand);color:white}
+@media(max-width:650px){.settings-grid{grid-template-columns:1fr 1fr}}
+</style></head>
+<body data-admin-only="true">
+<header class="topbar"><a class="brand" href="admin.html">Delaji<span>Pay</span> ADMIN</a><nav><a href="admin.html">Overview</a><a href="index.html">Customer site ↗</a><button class="signout-btn" type="button" data-signout>Sign out</button></nav></header>
+<main class="container"><a class="back" href="admin.html">← Back to admin overview</a><div class="eyebrow">ADMINISTRATION</div><h1>Platform settings</h1><p class="muted">Configure referral links, commission rules and review referral bank payout requests.</p>
+<div id="settings-message" class="notice" role="status" hidden></div>
+<section class="settings-grid"><article class="settings-stat"><small>Referral signups</small><strong id="settings-referrals">—</strong></article><article class="settings-stat"><small>Pending bank withdrawals</small><strong id="settings-pending">—</strong></article><article class="settings-stat"><small>Total referral rewards</small><strong id="settings-rewards">—</strong></article></section>
+<section class="panel"><h2>Referral programme settings</h2><p class="muted">New referral links use this website address. Referral codes remain unchanged if you switch domains. The default is deltagp.com; it can be changed after domain purchase.</p>
+<form id="referral-settings-form" class="settings-form">
+<label>Referral website base URL<input id="referral-base-url" type="url" required placeholder="https://deltagp.com/"></label>
+<div class="settings-actions"><button type="button" class="btn secondary" id="use-current-site">Use current GitHub Pages site</button></div>
+<label>Commission percentage of verified profit<input id="referral-commission" type="number" min="0" max="100" step="0.01" required value="10"></label>
+<p class="muted">Starting rate: 10% of actual profit, not 10% of the customer's full payment. A reward is credited only after the order succeeds and its provider cost is supplied by the trusted server.</p>
+<button type="submit" class="btn">Save referral settings</button>
+</form></section>
+<section class="panel"><h2>Referral bank withdrawals</h2><p class="muted">Review customer requests here. Confirm a request as paid only after you have sent the bank transfer outside DelajiPay. Rejection releases the reserved referral balance.</p>
+<div id="referral-withdrawals"><div class="empty">Loading withdrawal requests…</div></div></section>
+</main>
+<footer class="footer">DelajiPay administration · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a></footer>
+<script type="module" src="auth.js"></script><script type="module" src="admin-settings.js"></script>
+</body></html>
