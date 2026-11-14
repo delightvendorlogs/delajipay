@@ -8,6 +8,7 @@ function note(text,kind="info"){const n=$("admin-page-message");n.hidden=false;n
 function cell(tr,value){const td=document.createElement("td");td.textContent=value==null?"—":String(value);tr.append(td);return td;}
 function metric(label,value){const a=document.createElement("article"),s=document.createElement("small"),b=document.createElement("strong");s.textContent=label;b.textContent=value;a.append(s,b);$("admin-page-metrics").append(a);}
 function render(){
+ if(view==="customers"){renderCustomers();return;}
  const q=($("admin-search").value||"").trim().toLowerCase(),body=$("admin-table-body");body.replaceChildren();
  const filtered=rows.filter(row=>JSON.stringify(row).toLowerCase().includes(q));
  if(!filtered.length){const tr=document.createElement("tr");cell(tr,rows.length?"No records match your search.":"No records found.");body.append(tr);return;}
@@ -15,10 +16,36 @@ function render(){
 }
 function setHeaders(names){headers=names;const tr=document.createElement("tr");names.forEach(name=>{const th=document.createElement("th");th.textContent=name;tr.append(th);});$("admin-table-head").replaceChildren(tr);}
 async function customers(){
- const {data,error}=await supabase.from("profiles").select("id,full_name,phone,referral_code,referred_by,created_at").order("created_at",{ascending:false}).limit(1000);if(error)throw error;
- rows=data||[];metric("Customer profiles",String(rows.length));metric("With referral code",String(rows.filter(x=>x.referral_code).length));metric("Referred customers",String(rows.filter(x=>x.referred_by).length));
- setHeaders(["Customer","Phone","Referral code","Referred by","Joined","Customer ID","Account"]);
- renderRow=r=>{const tr=document.createElement("tr");cell(tr,r.full_name||"Unnamed customer");cell(tr,r.phone);cell(tr,r.referral_code);cell(tr,r.referred_by?String(r.referred_by).slice(0,8)+"…":"Direct signup");cell(tr,dt(r.created_at));cell(tr,r.id);const action=cell(tr,"");const link=document.createElement("a");link.className="btn secondary";link.href="admin-customer-details.html?id="+encodeURIComponent(r.id);link.textContent="View account";action.append(link);return tr;};
+ const [list,countResult]=await Promise.all([
+  supabase.from("profiles").select("id,full_name,phone,referral_code,referred_by,created_at").order("created_at",{ascending:false}).limit(1000),
+  supabase.from("profiles").select("id",{count:"exact",head:true})
+ ]);
+ if(list.error)throw list.error;if(countResult.error)throw countResult.error;
+ rows=list.data||[];
+ const total=countResult.count??rows.length;
+ $("total-users").textContent=Number(total).toLocaleString("en-NG");
+ $("loaded-users").textContent=Number(rows.length).toLocaleString("en-NG");
+ $("referred-users").textContent=Number(rows.filter(x=>x.referred_by).length).toLocaleString("en-NG");
+ renderRow=r=>r;
+}
+function renderCustomers(){
+ const q=($("admin-search").value||"").trim().toLowerCase(),list=$("customer-list");
+ const filtered=rows.filter(r=>[r.full_name,r.phone,r.id,r.referral_code,r.referred_by].some(v=>String(v||"").toLowerCase().includes(q)));
+ list.replaceChildren();
+ $("customer-search-count").textContent=`Showing ${filtered.length.toLocaleString("en-NG")} of ${rows.length.toLocaleString("en-NG")} loaded customer profiles`;
+ if(!filtered.length){const empty=document.createElement("div");empty.className="empty";empty.textContent=rows.length?"No customers match your search.":"No customer profiles found.";list.append(empty);return;}
+ filtered.forEach(r=>{
+  const card=document.createElement("article");card.className="customer-card";
+  const head=document.createElement("div");head.className="customer-card-head";
+  const name=document.createElement("strong");name.textContent=r.full_name||"Unnamed customer";
+  const joined=document.createElement("span");joined.className="admin-note";joined.textContent="Joined "+dt(r.created_at);
+  head.append(name,joined);
+  const meta=document.createElement("div");meta.className="customer-card-meta";
+  const fields=[["Phone",r.phone],["Customer ID",r.id],["Referral code",r.referral_code],["Referred by",r.referred_by||"Direct signup"]];
+  fields.forEach(([label,value])=>{const box=document.createElement("div"),small=document.createElement("small"),span=document.createElement("span");small.textContent=label;span.textContent=value||"—";if(label==="Customer ID")span.className="customer-id";box.append(small,span);meta.append(box);});
+  const link=document.createElement("a");link.className="btn secondary";link.href="admin-customer-details.html?id="+encodeURIComponent(r.id);link.textContent="View customer account";link.setAttribute("aria-label","View account for "+(r.full_name||"customer"));
+  card.append(head,meta,link);list.append(card);
+ });
 }
 async function wallets(){
  const [w,f,l]=await Promise.all([
