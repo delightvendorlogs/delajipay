@@ -22,6 +22,12 @@ async function customers(){
  ]);
  if(list.error)throw list.error;if(countResult.error)throw countResult.error;
  rows=list.data||[];
+ if(rows.length){
+  const {data:emailRows,error:emailError}=await supabase.rpc("admin_get_customer_emails",{p_user_ids:rows.map(r=>r.id)});
+  if(emailError)throw emailError;
+  const emailById=new Map((emailRows||[]).map(item=>[item.user_id,item.email]));
+  rows=rows.map(r=>({...r,email:emailById.get(r.id)||""}));
+ }
  const total=countResult.count??rows.length;
  $("total-users").textContent=Number(total).toLocaleString("en-NG");
  $("loaded-users").textContent=Number(rows.length).toLocaleString("en-NG");
@@ -30,7 +36,7 @@ async function customers(){
 }
 function renderCustomers(){
  const q=($("admin-search").value||"").trim().toLowerCase(),list=$("customer-list");
- const filtered=rows.filter(r=>[r.full_name,r.phone,r.id,r.referral_code,r.referred_by].some(v=>String(v||"").toLowerCase().includes(q)));
+ const filtered=rows.filter(r=>[r.full_name,r.email,r.phone,r.id,r.referral_code,r.referred_by].some(v=>String(v||"").toLowerCase().includes(q)));
  list.replaceChildren();
  $("customer-search-count").textContent=`Showing ${filtered.length.toLocaleString("en-NG")} of ${rows.length.toLocaleString("en-NG")} loaded customer profiles`;
  if(!filtered.length){const empty=document.createElement("div");empty.className="empty";empty.textContent=rows.length?"No customers match your search.":"No customer profiles found.";list.append(empty);return;}
@@ -41,7 +47,7 @@ function renderCustomers(){
   const joined=document.createElement("span");joined.className="admin-note";joined.textContent="Joined "+dt(r.created_at);
   head.append(name,joined);
   const meta=document.createElement("div");meta.className="customer-card-meta";
-  const fields=[["Phone",r.phone],["Customer ID",r.id],["Referral code",r.referral_code],["Referred by",r.referred_by||"Direct signup"]];
+  const fields=[["Email",r.email],["Phone",r.phone],["Customer ID",r.id],["Referral code",r.referral_code],["Referred by",r.referred_by||"Direct signup"]];
   fields.forEach(([label,value])=>{const box=document.createElement("div"),small=document.createElement("small"),span=document.createElement("span");small.textContent=label;span.textContent=value||"—";if(label==="Customer ID")span.className="customer-id";box.append(small,span);meta.append(box);});
   const link=document.createElement("a");link.className="btn secondary";link.href="admin-customer-details.html?id="+encodeURIComponent(r.id);link.textContent="View customer account";link.setAttribute("aria-label","View account for "+(r.full_name||"customer"));
   card.append(head,meta,link);list.append(card);
