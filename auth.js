@@ -40,33 +40,26 @@ async function guardPage() {
 
 await guardPage();
 
-// Make the four customer tabs navigate reliably and mark the current section.
+// Mark the active customer section without intercepting native navigation.
 const customerNav = document.querySelector(".topbar .app-nav");
 if (customerNav) {
   const currentFile = (window.location.pathname.split("/").pop() || "dashboard.html").toLowerCase();
+  const currentSection = currentFile.startsWith("wallet") ? "wallet.html"
+    : currentFile.startsWith("transaction") ? "transactions.html"
+    : currentFile === "profile.html" ? "profile.html"
+    : currentFile === "dashboard.html" ? "dashboard.html" : null;
   customerNav.querySelectorAll('a[href$=".html"]').forEach((link) => {
     const target = link.getAttribute("href").split("/").pop().toLowerCase();
     const section = target === "wallet.html" || target === "wallet-fund.html" || target === "wallet-history.html" ? "wallet.html"
       : target === "transactions.html" || target === "transaction-details.html" ? "transactions.html"
       : target === "profile.html" ? "profile.html"
       : target === "dashboard.html" ? "dashboard.html" : null;
-    const currentSection = currentFile.startsWith("wallet") ? "wallet.html"
-      : currentFile.startsWith("transaction") ? "transactions.html"
-      : currentFile === "profile.html" ? "profile.html"
-      : currentFile === "dashboard.html" ? "dashboard.html" : null;
     if (section && section === currentSection) {
       link.classList.add("is-current");
       link.setAttribute("aria-current", "page");
     }
-    if (target === "dashboard.html") {
-      link.addEventListener("click", (event) => {
-        event.preventDefault();
-        window.location.assign(new URL("dashboard.html", document.baseURI).href);
-      });
-    }
   });
 }
-
 
 async function refreshWalletUI() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -160,9 +153,40 @@ if (walletFundForm) {
 }
 
 if (document.querySelector("[data-wallet-balance]") || $("#wallet-ledger")) {
-  await refreshWalletUI();
+  void refreshWalletUI().catch((error) => console.warn("Wallet summary unavailable:", error));
 }
 
+
+const profilePasswordForm = $("#profile-password-form");
+if (profilePasswordForm) {
+  profilePasswordForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const next = $("#profile-new-password").value;
+    const confirmPassword = $("#profile-confirm-password").value;
+    if (next.length < 8) { showMessage("Use at least 8 characters for your new password.", "error"); return; }
+    if (next !== confirmPassword) { showMessage("The new passwords do not match.", "error"); return; }
+    const button = profilePasswordForm.querySelector('button[type="submit"]');
+    button.disabled = true; button.textContent = "Updating password…";
+    const { error } = await supabase.auth.updateUser({ password: next });
+    if (error) showMessage(error.message || "Your password could not be updated.", "error");
+    else { profilePasswordForm.reset(); showMessage("Your password has been changed successfully.", "success"); }
+    button.disabled = false; button.textContent = "Change password";
+  });
+}
+const profileEmailForm = $("#profile-email-form");
+if (profileEmailForm) {
+  profileEmailForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const email = $("#profile-new-email").value.trim();
+    if (!email) { showMessage("Enter the new email address.", "error"); return; }
+    const button = profileEmailForm.querySelector('button[type="submit"]');
+    button.disabled = true; button.textContent = "Updating email…";
+    const { error } = await supabase.auth.updateUser({ email });
+    if (error) showMessage(error.message || "Your email could not be updated.", "error");
+    else { profileEmailForm.reset(); showMessage("Check your inbox to confirm the new email address. Your current email remains active until confirmation.", "success"); }
+    button.disabled = false; button.textContent = "Change email";
+  });
+}
 
 const loginForm = $("#login-form");
 if (loginForm) {
@@ -367,6 +391,8 @@ async function loadProfile() {
   const phone = form.querySelector("#profile-phone");
   if (name) name.value = profile?.full_name || user.user_metadata?.full_name || "";
   if (phone) phone.value = profile?.phone || user.user_metadata?.phone || "";
+  const heading = document.querySelector("[data-profile-heading]");
+  if (heading) heading.textContent = profile?.full_name || user.user_metadata?.full_name || "DelajiPay customer";
   const email = document.querySelector("[data-profile-email]");
   if (email) email.textContent = user.email || "—";
   const joined = document.querySelector("[data-profile-joined]");
@@ -444,10 +470,12 @@ async function loadNotifications() {
   }
 }
 
-await loadTransactions();
-await loadTransactionDetails();
-await loadProfile();
-await loadNotifications();
+void Promise.all([
+  loadTransactions(),
+  loadTransactionDetails(),
+  loadProfile(),
+  loadNotifications()
+]).catch((error) => console.warn("DelajiPay page data could not be fully loaded:", error));
 
 
 async function loadRecentActivity() {
@@ -480,4 +508,4 @@ async function loadRecentActivity() {
     box.append(link);
   }
 }
-await loadRecentActivity();
+void loadRecentActivity().catch((error) => console.warn("Recent activity unavailable:", error));
