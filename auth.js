@@ -153,7 +153,7 @@ if (walletFundForm) {
 }
 
 if (document.querySelector("[data-wallet-balance]") || $("#wallet-ledger")) {
-  await refreshWalletUI();
+  void refreshWalletUI().catch((error) => console.warn("Wallet summary unavailable:", error));
 }
 
 
