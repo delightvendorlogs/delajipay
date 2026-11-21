@@ -126,26 +126,22 @@ async function countries() {
   for (const country of international) deduped.set(country.code, { ...country, providers: ["virtualsms"] });
   return { success: true, countries: [usa, ...Array.from(deduped.values()).sort((a,b)=>a.name.localeCompare(b.name))], warnings };
 }
-async function services(country: string) {
+async function services(country: string, mode: string) {
   const code = country.trim().toUpperCase();
   if (!/^[A-Z]{2}$/.test(code)) throw new Error("Choose a valid country.");
   if (code === "US") {
-    const results = await Promise.allSettled([
-      (async()=> {
-        const data = await fetchSmsRequest("/services");
-        return { provider_key: "fetchsms", provider_name: "Fetch SMS", country: "US", services: rows(data).filter((x:any)=>Number(x?.id)!==1).map(normalizeService).filter(Boolean) };
-      })(),
-      (async()=> {
-        const data = await textVerifiedRequest("/services?numberType=mobile&reservationType=verification");
-        return { provider_key: "textverified", provider_name: "TextVerified", country: "US", services: rows(data).map(normalizeService).filter(Boolean) };
-      })(),
-    ]);
-    const providers = results.map((r,i)=>r.status==="fulfilled"?r.value:{
-      provider_key:i===0?"fetchsms":"textverified",
-      provider_name:i===0?"Fetch SMS":"TextVerified",
-      country:"US",services:[],error:"Provider catalogue temporarily unavailable."
-    });
-    return { success:true,country:"US",providers };
+    if (mode === "all") {
+      const data = await fetchSmsRequest("/services");
+      return { success:true,country:"US",providers:[{
+        provider_key:"fetchsms",provider_name:"Fetch SMS",country:"US",
+        services:rows(data).filter((x:any)=>Number(x?.id)!==1).map(normalizeService).filter(Boolean)
+      }]};
+    }
+    const data = await textVerifiedRequest("/services?numberType=mobile&reservationType=verification");
+    return { success:true,country:"US",providers:[{
+      provider_key:"textverified",provider_name:"TextVerified",country:"US",
+      services:rows(data).map(normalizeService).filter(Boolean)
+    }]};
   }
   const data = await virtualSmsRequest("/customer/services?country=" + encodeURIComponent(code));
   return { success:true,country:code,providers:[{
@@ -161,7 +157,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(()=>({}));
     const action = str(body?.action).toLowerCase();
     if (action === "countries") return json(await countries());
-    if (action === "services") return json(await services(str(body?.country,body?.country_iso)));
+    if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase() || "usa"));
     return json({ success:false,error:"Use the countries or services action." },400);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected server error.";
