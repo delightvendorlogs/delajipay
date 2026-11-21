@@ -38,7 +38,7 @@
           <div class="phone-heading"><div><small>YOUR INBOX</small><h3>Messages</h3></div><span class="inbox-count">01 NEW</span></div>
           <div class="number-card"><div class="number-card-top"><span class="country-flag">🇺🇸</span><span class="number-label">NUMBER PREVIEW</span><span class="number-status"><span class="active-dot"></span> DEMO</span></div><strong class="typed-number"><span id="demo-number" aria-label="Animated demo number"></span><i class="typing-caret"></i></strong><div class="number-card-bottom"><span>United States · Example only</span><span class="demo-chip">LIVE-STYLE PREVIEW</span></div></div>
           <div class="message-label"><span>INCOMING SMS PREVIEW</span><span id="demo-message-time">Waiting…</span></div>
-          <div class="message-card"><div class="message-app"><span class="app-symbol" aria-hidden="true">◉</span><span><b>WhatsApp</b><small id="demo-message-status">Waiting for a message</small></span><i aria-hidden="true">●</i></div><p id="demo-message-copy">A new message will appear here.</p></div><div class="demo-code-panel" aria-live="polite"><div class="demo-code-heading"><span class="demo-code-check" aria-hidden="true">✓</span><span><b>Code received</b><small>Sample verification code</small></span><span class="demo-code-tag">DEMO</span></div><div class="demo-code-value"><strong id="demo-code" aria-label="Sample verification code">482 190</strong><span>EXAMPLE</span></div></div>
+          <div class="message-card"><div class="message-app"><span class="app-symbol" aria-hidden="true">◉</span><span><b>WhatsApp</b><small id="demo-message-status">Waiting for a message</small></span><i aria-hidden="true">●</i></div><p id="demo-message-copy">A new message will appear here.</p></div><div class="demo-code-panel" id="demo-code-panel" aria-live="polite" hidden><div class="demo-code-heading"><span class="demo-code-check" aria-hidden="true">✓</span><span><b>Code sent</b><small>Sample verification code</small></span><span class="demo-code-tag">DEMO</span></div><div class="demo-code-value"><strong id="demo-code" aria-label="Sample verification code"></strong><span>EXAMPLE</span></div></div>
           <div class="phone-bottom"><span class="active-dot"></span> Your messages, together</div>
         </div>
         <div class="float-tag tag-bottom"><span class="success-icon">✓</span><span><b id="demo-float-title">Ready when you are</b><small id="demo-float-copy">A live-style product preview</small></span></div>
@@ -78,9 +78,11 @@
     nav?.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{nav.classList.remove("is-open");menuButton?.setAttribute("aria-expanded","false");if(menuButton)menuButton.textContent="☰";}));
     
     const numberNode=document.querySelector("#demo-number"),codeNode=document.querySelector("#demo-code");
+    const codePanel=document.querySelector("#demo-code-panel");
     const statusNode=document.querySelector("#demo-message-status"),messageNode=document.querySelector("#demo-message-copy");
     const timeNode=document.querySelector("#demo-message-time"),floatTitle=document.querySelector("#demo-float-title"),floatCopy=document.querySelector("#demo-float-copy");
     const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const pause=ms=>new Promise(resolve=>setTimeout(resolve,reducedMotion?Math.min(ms,250):ms));
     const typeText=(node,value,speed)=>new Promise(resolve=>{
       if(!node){resolve();return;}
       if(reducedMotion){node.textContent=value;resolve();return;}
@@ -89,19 +91,20 @@
       tick();
     });
     async function runDemo(){
-      if(!numberNode||!codeNode)return;
-      numberNode.textContent="";codeNode.textContent="482 190";
+      if(!numberNode||!codeNode||!codePanel)return;
+      numberNode.textContent="";codeNode.textContent="";codePanel.hidden=true;
       statusNode.textContent="Selecting a number…";messageNode.textContent="Your number is being prepared.";timeNode.textContent="Connecting…";
       floatTitle.textContent="Number selected";floatCopy.textContent="Preparing your message inbox";
       await typeText(numberNode,"+1 (202) 555-0148",190);
       statusNode.textContent="Number ready · Demo";timeNode.textContent="Waiting for SMS…";
-      floatTitle.textContent="Number is ready";floatCopy.textContent="Now watching for an incoming SMS";
-      await new Promise(resolve=>setTimeout(resolve,reducedMotion?500:1500));
-      statusNode.textContent="Incoming message";timeNode.textContent="Just now";
-      messageNode.textContent="A verification message has arrived.";
-      floatTitle.textContent="Message received";floatCopy.textContent="Your code is now in the inbox";
+      floatTitle.textContent="Number is ready";floatCopy.textContent="Waiting for the message to arrive";
+      await pause(1500);
+      statusNode.textContent="Code sent · Demo";timeNode.textContent="Just now";
+      messageNode.textContent="Your verification message has arrived.";
+      floatTitle.textContent="Code sent";floatCopy.textContent="Your sample code is ready";
       codeNode.textContent="482 190";
-      await new Promise(resolve=>setTimeout(resolve,reducedMotion?6000:9000));
+      codePanel.hidden=false;
+      await pause(9000);
       runDemo();
     }
     runDemo();
