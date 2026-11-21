@@ -64,7 +64,7 @@ async function providerJson(url: string, headers: Record<string,string> = {}, op
   const raw = await response.text();
   let data: any = {};
   try { data = raw ? JSON.parse(raw) : {}; } catch { data = { message: raw }; }
-  if (!response.ok) throw new Error(str(data?.detail, data?.message, data?.error, "Provider request failed (" + response.status + ")."));
+  if (!response.ok || data?.success === false) throw new Error(str(data?.detail, data?.message, data?.error, "Provider request failed (" + response.status + ")."));
   return data;
 }
 async function virtualSmsRequest(path: string) {
