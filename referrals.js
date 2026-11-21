@@ -1,3 +1,4 @@
+import { askConfirm } from "./dialog.js";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 const supabase = createClient(
   "https://fgkkzxfaxgkkcbkwbamx.supabase.co",
@@ -99,7 +100,7 @@ $("bank-withdraw-form").addEventListener("submit",async event=>{
   event.preventDefault(); const button=event.currentTarget.querySelector('button[type="submit"]');
   const amount=Number($("bank-withdraw-amount").value);
   if(!Number.isFinite(amount)||amount<=0||Math.round(amount*100)!==amount*100){message("Enter a valid amount in naira.","error");return;}
-  if(!confirm("Submit this bank withdrawal request? The amount will be reserved while an administrator reviews it.")) return;
+  if(!(await askConfirm({title:"Submit withdrawal request?",message:"The amount will be reserved while an administrator reviews it.",confirmText:"Submit request"}))) return;
   button.disabled=true;button.textContent="Submitting…";
   try{
     const {data,error}=await supabase.rpc("request_referral_bank_withdrawal",{

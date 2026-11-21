@@ -1,3 +1,4 @@
+import { askConfirm, askText } from "./dialog.js";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 const supabase=createClient("https://fgkkzxfaxgkkcbkwbamx.supabase.co","sb_publishable_ImuiMjql4SAceGSyvvgeww_YPC9X4I_",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id);
@@ -46,8 +47,8 @@ async function loadSettings(){
  });
 }
 async function review(id,decision){
- if(decision==="paid"&&!confirm("Have you already sent this bank transfer? This only marks the request as paid; it does not send money."))return;
- const note=prompt(decision==="paid"?"Optional transfer reference or admin note:":"Reason for rejecting this request (optional):","");
+ if(decision==="paid"&&!(await askConfirm({title:"Mark as paid?",message:"Have you already sent this bank transfer? This only marks the request as paid; it does not send money.",confirmText:"Yes, mark as paid"})))return;
+ const note=await askText({title:decision==="paid"?"Transfer reference":"Reject request",message:decision==="paid"?"Optional transfer reference or admin note:":"Reason for rejecting this request (optional):",placeholder:"Type here (optional)",confirmText:decision==="paid"?"Save":"Reject"});
  if(note===null)return;
  try{
   const {data,error}=await supabase.rpc("admin_review_referral_withdrawal",{p_withdrawal_id:id,p_decision:decision,p_note:note});
