@@ -61,11 +61,12 @@ function renderServices(data){
        const quote=await invokeOrder({action:"quote",provider_key:provider.provider_key,country_iso:selectedCountry,service_code:service.code,service_name:service.name});
        quoteResult.textContent="Price: "+money(quote.customer_price_kobo);
        const buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.textContent="Purchase number";
+       const purchaseIdempotencyKey=crypto.randomUUID();
        buy.addEventListener("click",async()=>{
         if(!confirm("Purchase a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?"))return;
         buy.disabled=true;buy.textContent="Submitting…";
         try{
-         const result=await invokeOrder({action:"purchase",provider_key:provider.provider_key,country_iso:selectedCountry,country_name:selectedCountryName,service_code:service.code,service_name:service.name},{"Idempotency-Key":crypto.randomUUID()});
+         const result=await invokeOrder({action:"purchase",provider_key:provider.provider_key,country_iso:selectedCountry,country_name:selectedCountryName,service_code:service.code,service_name:service.name},{"Idempotency-Key":purchaseIdempotencyKey});
          quoteResult.textContent=result.order?.phone_number?"Number: "+result.order.phone_number+" · Order saved.":"Your order is being confirmed. Do not submit another purchase.";
          buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";
         }catch(error){quoteResult.textContent=error.message||"Purchase could not be completed.";buy.disabled=false;buy.textContent="Try again";}
