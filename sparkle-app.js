@@ -188,3 +188,29 @@ pricingForm?.addEventListener("submit",async event=>{
  finally{button.disabled=false;button.textContent="Save pricing rule";}
 });
 if(pricingList)void loadPricingRules();
+
+async function loadAdminSmsOrders(){
+ const box=document.querySelector("#admin-sms-orders");if(!box)return;
+ note(box,"Loading SMS orders…");
+ try{
+  const data=await invokeOrder({action:"admin-orders"}),orders=data.orders||[];box.replaceChildren();
+  if(!orders.length){note(box,"No Sparkle SMS orders have been placed yet.");return;}
+  box.className="app-list";
+  for(const order of orders){
+   const row=document.createElement("article");row.className="app-panel";row.style.marginTop="0";
+   const title=document.createElement("h2");title.textContent=order.service_name+" · "+order.country_name;
+   const meta=document.createElement("p");meta.className="app-panel-intro";meta.textContent=[order.provider_key,order.phone_number||"Number pending","User "+String(order.user_id).slice(0,8),new Date(order.created_at).toLocaleString("en-NG")].join(" · ");
+   const status=document.createElement("div");status.className="provider-region";status.textContent=String(order.status).toUpperCase()+" · "+money(order.customer_price_kobo);
+   row.append(title,meta,status);
+   if(order.otp_code){const code=document.createElement("p");code.style.color="#8de5f4";code.textContent="SMS code: "+order.otp_code;row.append(code);}
+   if(order.sms_text){const sms=document.createElement("p");sms.style.fontSize="10px";sms.textContent=order.sms_text;row.append(sms);}
+   if(order.provider_order_id&&["waiting","unknown","creating"].includes(order.status)){
+    const refresh=document.createElement("button");refresh.type="button";refresh.className="app-button secondary";refresh.textContent="Check provider status";
+    refresh.addEventListener("click",async()=>{refresh.disabled=true;refresh.textContent="Checking…";try{await invokeOrder({action:"status",order_id:order.id});await loadAdminSmsOrders();}catch(error){refresh.disabled=false;refresh.textContent="Try again";alert(error.message||"Status check failed.");}});
+    row.append(refresh);
+   }
+   box.append(row);
+  }
+ }catch(error){note(box,error.message||"SMS order records could not be loaded.");}
+}
+if(document.querySelector("#admin-sms-orders"))void loadAdminSmsOrders();
