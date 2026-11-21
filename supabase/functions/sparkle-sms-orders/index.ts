@@ -188,7 +188,7 @@ async function actionQuote(body:any){
   const provider=str(body.provider_key,body.provider).toLowerCase(),country=str(body.country_iso,body.country).toUpperCase(),service=str(body.service_code,body.service),name=str(body.service_name,body.serviceName);
   if(!provider||!country||!service)throw new Error("Choose a country, service and provider.");
   const q=await quote(provider,country,service,name);
-  return json({success:true,provider_key:provider,country_iso:country,service_code:service,service_name:q.serviceName,available:q.available,available_count:q.availabilityCount,provider_cost_usd:q.providerUsd,exchange_rate:q.fx,customer_price_kobo:q.customerPriceKobo,customer_price_ngn:q.customerPriceKobo/100,markup_percent:q.markupPercent});
+  return json({success:true,country_iso:country,service_code:service,service_name:q.serviceName,available:q.available,available_count:q.availabilityCount,customer_price_kobo:q.customerPriceKobo,customer_price_ngn:q.customerPriceKobo/100});
 }
 async function actionBuy(body:any,userId:string,req:Request){
   const provider=str(body.provider_key,body.provider).toLowerCase(),country=str(body.country_iso,body.country).toUpperCase(),countryName=str(body.country_name,body.countryName,country),service=str(body.service_code,body.service),serviceName=str(body.service_name,body.serviceName,service);
@@ -363,7 +363,7 @@ Deno.serve(async(req:Request)=>{
     if(action==="status"||action==="check")return await actionStatus(str(body?.order_id,body?.orderId,body?.id),user.id);
     if(action==="cancel")return await actionCancel(str(body?.order_id,body?.orderId,body?.id),user.id);
     if(action==="orders"){
-      const {data,error}=await admin.from("sparkle_sms_orders").select("id,provider_key,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,expires_at,code_received_at,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);
+      const {data,error}=await admin.from("sparkle_sms_orders").select("id,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,expires_at,code_received_at,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);
       if(error)throw new Error("Unable to load your number orders.");
       return json({success:true,orders:data||[]});
     }
