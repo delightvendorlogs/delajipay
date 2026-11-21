@@ -127,4 +127,8 @@
 @keyframes demoSuccessEnter{from{opacity:0;transform:translateY(9px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes demoCheckPop{0%{transform:scale(.35)}75%{transform:scale(1.13)}100%{transform:scale(1)}}
 @keyframes demoCheckDraw{to{stroke-dashoffset:0}}
-@media(max-width:680px){.demo-delivery-status{margin:13px auto 7px;padding:10px 15px;gap:10px}.delivery-check{width:38px;height:38px;flex-basis:38px}.delivery-check svg{width:25px;height:25px}}
+.demo-sms-code{display:flex;align-items:center;justify-content:center;margin-top:10px;padding:11px 14px;border:1px solid #c5d8ed;border-radius:10px;background:linear-gradient(135deg,#eef6ff,#e2efff);box-shadow:inset 0 1px 0 #fff;animation:demoCodeReveal .42s cubic-bezier(.2,.9,.25,1.2) both}
+.demo-sms-code[hidden]{display:none!important}
+.demo-sms-code strong{font:800 21px Manrope,sans-serif;letter-spacing:3px;color:#174b78}
+@keyframes demoCodeReveal{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:680px){.demo-delivery-status{margin:13px auto 7px;padding:10px 15px;gap:10px}.delivery-check{width:38px;height:38px;flex-basis:38px}.delivery-check svg{width:25px;height:25px}.demo-sms-code{padding:9px 12px}.demo-sms-code strong{font-size:19px}}
