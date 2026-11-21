@@ -117,7 +117,7 @@ async function countries() {
   let international: any[] = [];
   try {
     const result = await virtualSmsRequest("/customer/countries");
-    international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US"));
+    international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US" && !/united states|\\busa\\b/i.test(x.name)));
   } catch (error) {
     warnings.push("International catalogue temporarily unavailable.");
   }
