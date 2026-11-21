@@ -4,22 +4,32 @@ const menu=document.querySelector(".app-mobile-menu"),nav=document.querySelector
 menu?.addEventListener("click",()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open));menu.textContent=open?"×":"☰";});
 nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{nav.classList.remove("open");menu?.setAttribute("aria-expanded","false");if(menu)menu.textContent="☰";}));
 const results=document.querySelector("#country-results"),providersBox=document.querySelector("#provider-options"),heading=document.querySelector("#provider-heading"),description=document.querySelector("#provider-description");
-let countries=[],providerResults=[],selectedCountry="",selectedCountryName="";
+let countries=[],providerResults=[],selectedCountry="",selectedCountryName="",activeCatalog="usa";
 const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
 function note(parent,message){const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
+function setCatalog(mode){
+ activeCatalog=mode==="all"?"all":"usa";
+ document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===activeCatalog)));
+ selectedCountry="";selectedCountryName="";providerResults=[];
+ if(heading)heading.textContent="Choose a country";
+ if(description)description.textContent="Available services will appear here.";
+ if(providersBox)note(providersBox,"Select a country to see available services.");
+ const search=document.querySelector("#country-search");if(search)search.value="";
+ renderCountries();
+}
 function renderCountries(){
  if(!results)return;
- const countryInput=document.querySelector("#country-search");
- const q=(countryInput?countryInput.value:(new URLSearchParams(location.search).get("q")||"")).trim().toLowerCase();
- const filtered=countries.filter(c=>(c.name+" "+c.code+" "+(c.aliases||[]).join(" ")).toLowerCase().includes(q));
+ const q=(document.querySelector("#country-search")?.value||"").trim().toLowerCase();
+ const source=activeCatalog==="usa"?countries.filter(c=>c.code==="US"):countries;
+ const filtered=source.filter(c=>(c.name+" "+c.code+" "+(c.aliases||[]).join(" ")).toLowerCase().includes(q));
  results.replaceChildren();
- if(!filtered.length){note(results,"No matching countries in the connected provider catalogue.");return;}
+ if(!filtered.length){note(results,"No matching countries. Try another search.");return;}
  for(const country of filtered){
   const row=document.createElement("div");row.className="app-country-result";
   const left=document.createElement("div"),name=document.createElement("span"),meta=document.createElement("small"),button=document.createElement("button");
   name.textContent=(country.flag?country.flag+" ":"")+country.name;
-  meta.textContent=country.code==="US"?"Fetch SMS · TextVerified":"VirtualSMS";
-  button.type="button";button.textContent="View services";button.addEventListener("click",()=>loadServices(country.code,country.name));
+  meta.textContent=country.code==="US"?(activeCatalog==="usa"?"USA catalogue":"United States destination"):"Available destination";
+  button.type="button";button.textContent="Choose";button.addEventListener("click",()=>loadServices(country.code,country.name,activeCatalog));
   left.append(name,meta);row.append(left,button);results.append(row);
  }
 }
@@ -37,10 +47,9 @@ function renderServices(data){
  let totalServices=0;
  for(const provider of providerResults){
   const card=document.createElement("article");card.className="provider-card";
-  const h=document.createElement("h3");h.textContent=provider.provider_name;
-  const p=document.createElement("p");p.textContent=provider.error||((provider.services||[]).length+" services returned by provider");
-  const region=document.createElement("div");region.className="provider-region";region.textContent=provider.country==="US"?"UNITED STATES":"INTERNATIONAL";
-  card.append(h,p,region);
+  const h=document.createElement("h3");h.textContent="Available services";
+  const p=document.createElement("p");p.textContent=provider.error?"Services are temporarily unavailable.":((provider.services||[]).length+" services available to explore");
+  card.append(h,p);
   if(provider.error){const e=document.createElement("p");e.textContent="This provider catalogue is temporarily unavailable.";card.append(e);}
   else{
    const list=document.createElement("div");list.className="app-list";
@@ -93,21 +102,21 @@ async function loadCountries(){
   renderCountries();
  }catch(error){note(results,"The country catalogue could not load. Provider API credentials may still need to be added.");console.warn("Sparkle country catalogue:",error);}
 }
-async function loadServices(country,name){
+async function loadServices(country,name,mode=activeCatalog){
  if(!providersBox)return;
  selectedCountry=country;selectedCountryName=name||country;
  heading.textContent=selectedCountryName+" services";
- description.textContent=country==="US"?"USA results combine Fetch SMS and TextVerified.":"International results come from VirtualSMS; USA is excluded from this provider.";
- note(providersBox,"Loading provider services…");
+ description.textContent="Choose a service and check its current price.";
+ note(providersBox,"Loading available services…");
  try{
-  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country}});
+  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode}});
   if(error)throw error;
   renderServices(data||{providers:[]});
- }catch(error){note(providersBox,"The service catalogue is unavailable for this country. Check provider API credentials and try again.");console.warn("Sparkle services:",error);}
+ }catch(error){note(providersBox,"Services could not be loaded right now. Please try again.");console.warn("Sparkle services:",error);}
 }
+document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
 document.querySelector("#country-search")?.addEventListener("input",renderCountries);
 document.querySelector("#service-search")?.addEventListener("input",()=>{if(selectedCountry&&providerResults.length)renderServices({providers:providerResults});});
-document.querySelectorAll("[data-country]").forEach(button=>button.addEventListener("click",()=>loadServices(button.dataset.country,button.dataset.country==="US"?"United States":"International destinations")));
 const dashboardSearch=document.querySelector("#dashboard-number-search");
 dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?q="+encodeURIComponent(dashboardSearch.value);});
 let inboxPollTimer=null,inboxPolling=false;
@@ -149,9 +158,15 @@ async function loadSmsOrders(){
   }
  }catch(error){note(box,"Your SMS orders could not be loaded. Please refresh and try again.");console.warn("Sparkle orders:",error);}
 }
-const initialCountrySearch=document.querySelector("#country-search");
-if(initialCountrySearch)initialCountrySearch.value=new URLSearchParams(location.search).get("q")||"";
-if(results)void loadCountries();
+const initialParams=new URLSearchParams(location.search);
+if(results){
+ void loadCountries().then(()=>{
+  setCatalog(initialParams.get("tab")==="all"?"all":"usa");
+  const initialQuery=initialParams.get("q")||"";
+  const search=document.querySelector("#country-search");
+  if(search&&initialQuery){setCatalog("all");search.value=initialQuery;renderCountries();}
+ });
+}
 if(document.querySelector("#sms-orders")){
  void loadSmsOrders();
  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void loadSmsOrders();});
