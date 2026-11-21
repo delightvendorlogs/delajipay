@@ -117,7 +117,7 @@ async function countries() {
   let international: any[] = [];
   try {
     const result = await virtualSmsRequest("/customer/countries");
-    international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US" && !/united states|\\busa\\b/i.test(x.name)));
+    international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US" && !/united states|\busa\b/i.test(x.name)));
   } catch (error) {
     warnings.push("International catalogue temporarily unavailable.");
   }
@@ -133,19 +133,19 @@ async function services(country: string, mode: string) {
     if (mode === "all") {
       const data = await fetchSmsRequest("/services");
       return { success:true,country:"US",providers:[{
-        provider_key:"fetchsms",provider_name:"Fetch SMS",country:"US",
+        provider_key:"fetchsms",country:"US",
         services:rows(data).filter((x:any)=>Number(x?.id)!==1).map(normalizeService).filter(Boolean)
       }]};
     }
     const data = await textVerifiedRequest("/services?numberType=mobile&reservationType=verification");
     return { success:true,country:"US",providers:[{
-      provider_key:"textverified",provider_name:"TextVerified",country:"US",
+      provider_key:"textverified",country:"US",
       services:rows(data).map(normalizeService).filter(Boolean)
     }]};
   }
   const data = await virtualSmsRequest("/customer/services?country=" + encodeURIComponent(code));
   return { success:true,country:code,providers:[{
-    provider_key:"virtualsms",provider_name:"Virtual Number",country:code,
+    provider_key:"virtualsms",country:code,
     services:rows(data).map(normalizeService).filter(Boolean)
   }]};
 }
