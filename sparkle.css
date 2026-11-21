@@ -44,3 +44,7 @@
 .message-code span#demo-code{display:block!important;visibility:visible!important;opacity:1!important;min-width:112px;min-height:27px;color:#153b63!important;font-size:21px;line-height:1.35;white-space:nowrap;position:relative;z-index:2}
 .message-code small{display:block;flex-shrink:0;white-space:nowrap;font-weight:800;letter-spacing:.5px}
 @media(max-width:380px){.message-code{padding:8px 9px}.message-code span#demo-code{font-size:19px;min-width:100px}}
+
+/* Explicitly keep the landing-page sample OTP visible */
+.message-code #demo-code{display:inline-block!important;visibility:visible!important;opacity:1!important;min-width:92px;min-height:25px;color:#1c4774!important;font:800 20px Manrope,sans-serif;letter-spacing:2px;line-height:1.35;white-space:nowrap;position:relative;z-index:3}
+.message-code small{display:block!important;visibility:visible!important;opacity:1!important;flex-shrink:0;color:#8394a9!important}
