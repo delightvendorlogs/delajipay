@@ -54,10 +54,8 @@ if (window.location.pathname.endsWith("/welcome.html")) {
   if (copy) copy.textContent = isNew ? "Your account is ready. Your verification journey starts here." : "You're signed in. Your numbers, messages and wallet are ready.";
   const next = params.get("next");
   const destination = next && /^[a-z0-9-]+\.html$/i.test(next) ? next : "dashboard.html";
-  const continueButton = document.querySelector("[data-welcome-continue]");
-  const continueToDashboard = () => go(destination);
-  continueButton?.addEventListener("click", continueToDashboard);
-  window.setTimeout(continueToDashboard, 4200);
+  // Automatically enter the dashboard when the welcome sequence completes.
+  window.setTimeout(() => go(destination), 4200);
   if (status) status.textContent = "Preparing your secure dashboard…";
 
   // Pull real country/service pairs from the live catalogue for the rotating welcome display.
