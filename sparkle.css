@@ -48,3 +48,8 @@
 /* Explicitly keep the landing-page sample OTP visible */
 .message-code #demo-code{display:inline-block!important;visibility:visible!important;opacity:1!important;min-width:92px;min-height:25px;color:#1c4774!important;font:800 20px Manrope,sans-serif;letter-spacing:2px;line-height:1.35;white-space:nowrap;position:relative;z-index:3}
 .message-code small{display:block!important;visibility:visible!important;opacity:1!important;flex-shrink:0;color:#8394a9!important}
+
+/* Keep the example verification code above decorative phone layers */
+.message-card,.message-code{overflow:visible!important}
+.message-code{position:relative!important;z-index:20!important;isolation:isolate}
+#demo-code{display:inline-block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:30!important;color:#153b63!important}
