@@ -85,3 +85,8 @@
 .service-logo.more-services{background:#203653;color:#9bdcf1;font-size:25px;font-weight:500}
 @media(max-width:760px){.service-showcase{padding:0 17px;margin:4px auto 28px}.service-showcase-head{display:block}.service-showcase-head p{margin-top:5px}.service-logo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.service-logo-card{min-height:67px;padding:11px}}
 @media(max-width:380px){.phone-shell{padding:17px 13px 13px}.demo-code-value strong{font-size:21px!important;letter-spacing:2px!important}.demo-code-value>span{font-size:7px}}
+
+/* Keep floating decorations behind the phone preview and its visible OTP panel. */
+.tag-top,.tag-bottom{z-index:1}
+.phone-shell{z-index:2}
+.demo-code-panel{isolation:isolate}
