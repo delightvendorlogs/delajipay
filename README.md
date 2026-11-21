@@ -12,8 +12,8 @@ Sparkle SMS is a virtual-number and incoming SMS platform. The former DelajiPay 
 
 ## Provider routing
 
-- United States: Fetch SMS and TextVerified.
-- Other supported countries: VirtualSMS, excluding the United States.
+- United States: Fetch SMS and TextVerified (the Test Verified Virtual SMS integration).
+- Other supported countries: VirtualSMS (the Virtual Number provider), excluding the United States.
 - The United States must also appear in the all-country search results and offer both USA provider routes.
 - Only one-off verification products are in scope. Rental products and rental-duration choices must not be exposed.
 
@@ -24,7 +24,7 @@ Sparkle SMS is a virtual-number and incoming SMS platform. The former DelajiPay 
 - Sparkle customer dashboard, number discovery interface and SMS inbox shell.
 - Existing Supabase Auth, wallet ledger and Paystack funding foundation retained.
 - Legacy VTU catalogue entries disabled and old VTpass Edge Function retired.
-- Live provider catalogues, order purchases, SMS polling/webhooks, and wallet settlement still need to be connected to the Sparkle Supabase project.
+- Live country/service catalogues, price quotes, one-off number purchases, SMS status checks, inbox records and idempotent wallet refunds are implemented in Sparkle Supabase. Provider API credentials still need to be added to the Sparkle project before live supplier requests can succeed.
 
 ## Provider credentials
 
