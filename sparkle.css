@@ -151,3 +151,25 @@
  .motion-ready .reveal-on-scroll,.motion-ready .hero-stagger{opacity:1!important;transform:none!important;animation:none!important;transition:none!important}
  .phone-shell,.number-status .active-dot{animation:none!important}
 }
+
+
+/* Subtle BJVERIFY polish: restrained CTA motion and selection feedback. */
+.primary-button,.nav-cta{
+  background-size:200% 100%;
+  background-position:0% 50%;
+  transition:transform .22s ease,box-shadow .22s ease,background-position .65s ease;
+}
+.primary-button:hover,.nav-cta:hover{
+  transform:translateY(-2px) scale(1.025);
+  background-position:100% 50%;
+  box-shadow:0 13px 32px #268fe548,0 0 0 1px #79dff044;
+}
+.tag-top i{animation:selectionCheckPulse 2.8s ease-in-out infinite}
+@keyframes selectionCheckPulse{
+  0%,100%{transform:scale(1);text-shadow:0 0 0 #68e4b400}
+  50%{transform:scale(1.12);text-shadow:0 0 10px #68e4b477}
+}
+@media(prefers-reduced-motion:reduce){
+  .primary-button,.nav-cta{transition:none!important}
+  .tag-top i{animation:none!important}
+}
