@@ -75,6 +75,10 @@
   <script>
     const menuButton=document.querySelector(".mobile-menu");
     const nav=document.querySelector(".bjverify-nav");
+    const siteHeader=document.querySelector(".bjverify-header");
+    const syncHeaderGlass=()=>siteHeader?.classList.toggle("is-scrolled",window.scrollY>12);
+    syncHeaderGlass();
+    window.addEventListener("scroll",syncHeaderGlass,{passive:true});
     menuButton?.addEventListener("click",()=>{const open=nav.classList.toggle("is-open");menuButton.setAttribute("aria-expanded",String(open));menuButton.textContent=open?"×":"☰";});
     nav?.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{nav.classList.remove("is-open");menuButton?.setAttribute("aria-expanded","false");if(menuButton)menuButton.textContent="☰";}));
 
@@ -118,29 +122,31 @@
         element.style.setProperty("--hero-delay", (index * 110) + "ms");
       });
 
-      const statObserver = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-          if (!entry.isIntersecting) return;
-          const stat = entry.target;
-          const raw = stat.textContent.trim();
-          const match = raw.match(/^([\d,]+)(.*)$/);
-          if (match) {
-            const target = Number(match[1].replace(/,/g, ""));
-            const suffix = match[2];
-            const duration = 1050;
-            const start = performance.now();
-            const tick = now => {
-              const progress = Math.min((now - start) / duration, 1);
-              const eased = 1 - Math.pow(1 - progress, 3);
-              stat.textContent = Math.round(target * eased).toLocaleString("en-US") + suffix;
-              if (progress < 1) requestAnimationFrame(tick);
-            };
-            requestAnimationFrame(tick);
-          }
-          statObserver.unobserve(stat);
-        });
-      }, { threshold: 0.65 });
-      document.querySelectorAll(".stats-strip strong").forEach(stat => statObserver.observe(stat));
+      if ("IntersectionObserver" in window) {
+        const statObserver = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const stat = entry.target;
+            const raw = stat.textContent.trim();
+            const match = raw.match(/^([\d,]+)(.*)$/);
+            if (match) {
+              const target = Number(match[1].replace(/,/g, ""));
+              const suffix = match[2];
+              const duration = 1050;
+              const start = performance.now();
+              const tick = now => {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                stat.textContent = Math.round(target * eased).toLocaleString("en-US") + suffix;
+                if (progress < 1) requestAnimationFrame(tick);
+              };
+              requestAnimationFrame(tick);
+            }
+            statObserver.unobserve(stat);
+          });
+        }, { threshold: 0.65 });
+        document.querySelectorAll(".stats-strip strong").forEach(stat => statObserver.observe(stat));
+      }
     }
 
     const typeText=(node,value,speed)=>new Promise(resolve=>{
