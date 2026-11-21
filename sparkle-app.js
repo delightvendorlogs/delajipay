@@ -4,7 +4,8 @@ const menu=document.querySelector(".app-mobile-menu"),nav=document.querySelector
 menu?.addEventListener("click",()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open));menu.textContent=open?"×":"☰";});
 nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{nav.classList.remove("open");menu?.setAttribute("aria-expanded","false");if(menu)menu.textContent="☰";}));
 const results=document.querySelector("#country-results"),providersBox=document.querySelector("#provider-options"),heading=document.querySelector("#provider-heading"),description=document.querySelector("#provider-description");
-let countries=[],providerResults=[],selectedCountry="";
+let countries=[],providerResults=[],selectedCountry="",selectedCountryName="";
+const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
 function note(parent,message){const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
 function renderCountries(){
  if(!results)return;
@@ -16,38 +17,69 @@ function renderCountries(){
   const row=document.createElement("div");row.className="app-country-result";
   const left=document.createElement("div"),name=document.createElement("span"),meta=document.createElement("small"),button=document.createElement("button");
   name.textContent=(country.flag?country.flag+" ":"")+country.name;
-  meta.textContent=country.code==="US"?"Fetch SMS · TextVerified":"Virtual Number";
+  meta.textContent=country.code==="US"?"Fetch SMS · TextVerified":"VirtualSMS";
   button.type="button";button.textContent="View services";button.addEventListener("click",()=>loadServices(country.code,country.name));
   left.append(name,meta);row.append(left,button);results.append(row);
  }
+}
+async function invokeOrder(body,headers={}){
+ const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});
+ if(error)throw error;
+ if(data?.success===false)throw new Error(data.error||"The request could not be completed.");
+ return data;
 }
 function renderServices(data){
  if(!providersBox)return;
  providerResults=data.providers||[];
  providersBox.replaceChildren();
  const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
- let visible=0;
+ let totalServices=0;
  for(const provider of providerResults){
   const card=document.createElement("article");card.className="provider-card";
   const h=document.createElement("h3");h.textContent=provider.provider_name;
-  const p=document.createElement("p");p.textContent=provider.error||((provider.services||[]).length+" supported services returned by provider");
+  const p=document.createElement("p");p.textContent=provider.error||((provider.services||[]).length+" services returned by provider");
   const region=document.createElement("div");region.className="provider-region";region.textContent=provider.country==="US"?"UNITED STATES":"INTERNATIONAL";
   card.append(h,p,region);
-  if(provider.error){const e=document.createElement("p");e.textContent=provider.error;card.append(e);}
+  if(provider.error){const e=document.createElement("p");e.textContent="This provider catalogue is temporarily unavailable.";card.append(e);}
   else{
    const list=document.createElement("div");list.className="app-list";
    const services=(provider.services||[]).filter(s=>!q||String(s.name).toLowerCase().includes(q)||String(s.code).toLowerCase().includes(q));
-   for(const service of services.slice(0,60)){
+   totalServices+=services.length;
+   for(const service of services.slice(0,80)){
     const item=document.createElement("div");item.className="app-list-row";
-    const detail=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small");
-    title.textContent=service.name;meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" available":"Availability confirmed at checkout";
-    detail.append(title,meta);item.append(detail);list.append(item);visible++;
+    const detail=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small"),actions=document.createElement("div");
+    title.textContent=service.name;
+    meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" available":"Check live availability";
+    detail.append(title,meta);actions.style.display="grid";actions.style.gap="7px";
+    const quoteButton=document.createElement("button");quoteButton.type="button";quoteButton.className="app-button secondary";quoteButton.textContent="Check price";
+    const quoteResult=document.createElement("div");quoteResult.style.fontSize="10px";quoteResult.style.color="#9bdff1";
+    quoteButton.disabled=service.available===false;
+    quoteButton.addEventListener("click",async()=>{
+      quoteButton.disabled=true;quoteButton.textContent="Checking…";quoteResult.textContent="";
+      try{
+       const quote=await invokeOrder({action:"quote",provider_key:provider.provider_key,country_iso:selectedCountry,service_code:service.code,service_name:service.name});
+       quoteResult.textContent="Price: "+money(quote.customer_price_kobo);
+       const buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.textContent="Purchase number";
+       buy.addEventListener("click",async()=>{
+        if(!confirm("Purchase a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?"))return;
+        buy.disabled=true;buy.textContent="Submitting…";
+        try{
+         const result=await invokeOrder({action:"purchase",provider_key:provider.provider_key,country_iso:selectedCountry,country_name:selectedCountryName,service_code:service.code,service_name:service.name},{"Idempotency-Key":crypto.randomUUID()});
+         quoteResult.textContent=result.order?.phone_number?"Number: "+result.order.phone_number+" · Order saved.":"Your order is being confirmed. Do not submit another purchase.";
+         buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";
+        }catch(error){quoteResult.textContent=error.message||"Purchase could not be completed.";buy.disabled=false;buy.textContent="Try again";}
+       });
+       actions.append(buy);
+      }catch(error){quoteResult.textContent=error.message||"Price could not be retrieved.";}
+      finally{quoteButton.textContent="Refresh price";quoteButton.disabled=false;}
+    });
+    actions.append(quoteButton,quoteResult);item.append(detail,actions);list.append(item);
    }
    if(!services.length){const empty=document.createElement("p");empty.textContent=q?"No services match this search.":"No services were returned by this provider.";card.append(empty);}else card.append(list);
   }
   providersBox.append(card);
  }
- if(!visible&&providerResults.every(p=>!p.error)){const footer=document.createElement("div");footer.className="app-note";footer.textContent="Service catalogues are loaded. Live prices and purchase checkout will be enabled after pricing rules are configured.";providersBox.append(footer);}
+ if(totalServices===0&&!providerResults.some(p=>p.error)){const footer=document.createElement("div");footer.className="app-note";footer.textContent="No services match the current search. Try another service name.";providersBox.append(footer);}
 }
 async function loadCountries(){
  if(!results)return;
@@ -56,14 +88,13 @@ async function loadCountries(){
   const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});
   if(error)throw error;
   countries=data?.countries||[];
-  if(data?.warnings?.length)console.warn("Sparkle country catalogue warnings:",data.warnings);
   renderCountries();
  }catch(error){note(results,"The country catalogue could not load. Provider API credentials may still need to be added.");console.warn("Sparkle country catalogue:",error);}
 }
 async function loadServices(country,name){
  if(!providersBox)return;
- selectedCountry=country;
- heading.textContent=(name||country)+" services";
+ selectedCountry=country;selectedCountryName=name||country;
+ heading.textContent=selectedCountryName+" services";
  description.textContent=country==="US"?"USA results combine Fetch SMS and TextVerified.":"International results come from VirtualSMS; USA is excluded from this provider.";
  note(providersBox,"Loading provider services…");
  try{
@@ -77,4 +108,32 @@ document.querySelector("#service-search")?.addEventListener("input",()=>{if(sele
 document.querySelectorAll("[data-country]").forEach(button=>button.addEventListener("click",()=>loadServices(button.dataset.country,button.dataset.country==="US"?"United States":"International destinations")));
 const dashboardSearch=document.querySelector("#dashboard-number-search");
 dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?q="+encodeURIComponent(dashboardSearch.value);});
+async function loadSmsOrders(){
+ const box=document.querySelector("#sms-orders");if(!box)return;
+ note(box,"Loading your SMS orders…");
+ try{
+  const data=await invokeOrder({action:"orders"});const orders=data.orders||[];box.replaceChildren();
+  if(!orders.length){note(box,"No number purchases yet. Choose a supported country to get started.");return;}
+  box.className="app-list";
+  for(const order of orders){
+   const card=document.createElement("article");card.className="app-panel";card.style.marginTop="0";
+   const title=document.createElement("h2");title.textContent=order.service_name+" · "+order.country_name;
+   const number=document.createElement("p");number.className="app-panel-intro";number.textContent=order.phone_number||"Number confirmation pending";
+   const status=document.createElement("div");status.className="provider-region";status.textContent=String(order.status||"pending").toUpperCase();
+   card.append(title,number,status);
+   if(order.otp_code){const code=document.createElement("div");code.className="message-code";code.style.marginTop="12px";const value=document.createElement("strong");value.textContent=order.otp_code;const copy=document.createElement("button");copy.type="button";copy.className="app-button secondary";copy.textContent="Copy code";copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(order.otp_code);copy.textContent="Copied";}catch{copy.textContent="Copy unavailable";}});code.append(value,copy);card.append(code);}
+   if(order.sms_text){const message=document.createElement("p");message.style.fontSize="11px";message.textContent=order.sms_text;card.append(message);}
+   const meta=document.createElement("small");meta.style.color="#8ea5c0";meta.textContent=new Date(order.created_at).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"})+" · "+money(order.customer_price_kobo);card.append(meta);
+   if(["waiting","unknown","creating"].includes(order.status)){
+    const refresh=document.createElement("button");refresh.type="button";refresh.className="app-button secondary";refresh.textContent="Refresh status";
+    refresh.addEventListener("click",async()=>{refresh.disabled=true;refresh.textContent="Checking…";try{await invokeOrder({action:"status",order_id:order.id});await loadSmsOrders();}catch(error){refresh.disabled=false;refresh.textContent="Try again";alert(error.message||"Could not refresh order status.");}});
+    const cancel=document.createElement("button");cancel.type="button";cancel.className="app-button secondary";cancel.textContent="Cancel request";
+    cancel.addEventListener("click",async()=>{if(!confirm("Try to cancel this verification? A received message cannot be refunded."))return;cancel.disabled=true;cancel.textContent="Cancelling…";try{await invokeOrder({action:"cancel",order_id:order.id});await loadSmsOrders();}catch(error){cancel.disabled=false;cancel.textContent="Try again";alert(error.message||"Cancellation could not be confirmed.");}});
+    card.append(refresh,cancel);
+   }
+   box.append(card);
+  }
+ }catch(error){note(box,"Your SMS orders could not be loaded. Please refresh and try again.");console.warn("Sparkle orders:",error);}
+}
 if(results)void loadCountries();
+if(document.querySelector("#sms-orders"))void loadSmsOrders();
