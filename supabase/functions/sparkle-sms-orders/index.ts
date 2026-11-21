@@ -184,85 +184,51 @@ async function providerStatus(order:any){
   }
   return await virtualRequest("/customer/order/"+id);
 }
+function base64Url(bytes: Uint8Array) { let binary = ""; for (const byte of bytes) binary += String.fromCharCode(byte); return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
+function fromBase64Url(value: string) { const normalized=value.replace(/-/g,"+").replace(/_/g,"/"); const binary=atob(normalized+"=".repeat((4-normalized.length%4)%4)); return Uint8Array.from(binary,ch=>ch.charCodeAt(0)); }
+async function resolveServiceRef(token:string,catalogue:string,country:string){
+ const secret=SUPABASE_SERVICE_ROLE_KEY;if(!secret||!token.includes("."))throw new Error("Choose a valid service.");
+ const [payload,signature]=token.split(".");const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["verify"]);
+ const valid=await crypto.subtle.verify("HMAC",key,fromBase64Url(signature),new TextEncoder().encode(payload));if(!valid)throw new Error("Choose a valid service.");
+ const data=JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
+ if(!data||data.country!==country||!data.code||!data.name||Date.now()-Number(data.issued)>30*60*1000)throw new Error("Please refresh the service list and choose again.");
+ const expected=catalogue==="usa"&&country==="US"?"textverified":catalogue==="all"&&country==="US"?"fetchsms":catalogue==="all"?"virtualsms":"";
+ if(!expected||data.provider!==expected)throw new Error("That service is not available in this destination.");
+ return {provider:expected,code:String(data.code),name:String(data.name)};
+}
+function customerOrder(order:any){return {id:order.id,country_name:order.country_name,service_name:order.service_name,phone_number:order.phone_number,customer_price_kobo:order.customer_price_kobo,status:order.status,otp_code:order.otp_code,sms_text:order.sms_text,expires_at:order.expires_at,code_received_at:order.code_received_at,created_at:order.created_at};}
 async function actionQuote(body:any){
-  const provider=str(body.provider_key,body.provider).toLowerCase(),country=str(body.country_iso,body.country).toUpperCase(),service=str(body.service_code,body.service),name=str(body.service_name,body.serviceName);
-  if(!provider||!country||!service)throw new Error("Choose a country, service and provider.");
-  const q=await quote(provider,country,service,name);
-  return json({success:true,country_iso:country,service_code:service,service_name:q.serviceName,available:q.available,available_count:q.availabilityCount,customer_price_kobo:q.customerPriceKobo,customer_price_ngn:q.customerPriceKobo/100});
+ const catalogue=str(body?.catalogue).toLowerCase(),country=str(body?.country_iso).toUpperCase();
+ const service=await resolveServiceRef(str(body?.service_ref),catalogue,country);
+ const q=await quote(service.provider,country,service.code,service.name);
+ return json({success:true,service_name:q.serviceName,available:q.available,available_count:q.availabilityCount,customer_price_kobo:q.customerPriceKobo,customer_price_ngn:q.customerPriceKobo/100});
 }
 async function actionBuy(body:any,userId:string,req:Request){
-  const provider=str(body.provider_key,body.provider).toLowerCase(),country=str(body.country_iso,body.country).toUpperCase(),countryName=str(body.country_name,body.countryName,country),service=str(body.service_code,body.service),serviceName=str(body.service_name,body.serviceName,service);
-  if(!provider||!country||!service)throw new Error("Choose a country, service and provider.");
-  const q=await quote(provider,country,service,serviceName);
-  if(!q.available) return json({success:false,error:"This service is currently out of stock.",available:false},409);
-  if(provider==="fetchsms"){
-    const wallet=await fetchRequest("/wallet/balance",{},true);
-    if(num(wallet?.balance_cents,-1)<Math.ceil(q.providerUsd*100))return json({success:false,error:"The USA provider is temporarily unable to fulfil orders.",code:"PROVIDER_BALANCE_LOW"},503);
-  }
-  const idempotencyKey=str(req.headers.get("idempotency-key"),body.idempotency_key,body.idempotencyKey)||crypto.randomUUID();
-  const reserved=await admin.rpc("sparkle_create_sms_order",{
-    p_user_id:userId,p_provider_key:provider,p_idempotency_key:idempotencyKey,p_country_iso:country,p_country_name:countryName,
-    p_service_code:service,p_service_name:serviceName,p_customer_price_kobo:q.customerPriceKobo,
-    p_provider_cost_usd:q.providerUsd,p_exchange_rate:q.fx
-  });
-  if(reserved.error){
-    const message=reserved.error.message||"Unable to reserve this order.";
-    if(message.includes("INSUFFICIENT_FUNDS"))return json({success:false,error:"Your wallet balance is too low. Please add funds.",code:"INSUFFICIENT_WALLET_FUNDS"},402);
-    return json({success:false,error:"Your order could not be reserved. Please try again."},400);
-  }
-  const reservation=Array.isArray(reserved.data)?reserved.data[0]:reserved.data;
-  const orderId=str(reservation?.order_id);
-  if(!orderId)throw new Error("Order reservation did not return an order ID.");
-  if(reservation?.already_exists){
-    const existing=await ownOrder(orderId,userId);
-    return json({success:true,pending:true,order:existing,message:"This request already exists. Open the existing order instead of purchasing again."},202);
-  }
-  let providerData:any;
-  try{
-    if(provider==="fetchsms"){
-      providerData=await fetchRequest("/verifications",{method:"POST",headers:{"Idempotency-Key":idempotencyKey},body:JSON.stringify({service:Number(service)})},true);
-    }else if(provider==="textverified"){
-      providerData=await tvRequest("/verifications",{method:"POST",headers:{"Idempotency-Key":idempotencyKey},body:JSON.stringify({serviceName,capability:"sms",numberType:"mobile",areaCodeSelectOption:[],carrierSelectOption:[]})});
-    }else{
-      providerData=await virtualRequest("/customer/purchase",{method:"POST",body:JSON.stringify({service,country})});
-    }
-  }catch(error){
-    const status=num((error as any)?.status);
-    if(status>=400&&status<500){
-      await refund(orderId,"failed","Provider rejected number purchase");
-      return json({success:false,error:"The provider could not allocate a number. Your wallet has been refunded.",refunded:true},409);
-    }
-    await updateOrder(orderId,{status:"unknown",provider_state:"provider_result_unconfirmed"});
-    return json({success:true,pending:true,order_id:orderId,message:"The provider response could not be confirmed. Your request is being checked; please do not submit another purchase."},202);
-  }
-  let providerOrderId=getProviderId(providerData,provider);
-  let phone=getPhone(providerData);
-  let expiry=getExpiry(providerData);
-  if(provider==="textverified"&&!providerOrderId){
-    const selfLink=str(providerData?.href,providerData?.links?.self?.href);
-    if(selfLink){
-      try{
-        const linkUrl=new URL(selfLink);
-        if(linkUrl.hostname==="www.textverified.com"){
-          const details=await tvRequest(linkUrl.pathname+linkUrl.search);
-          providerOrderId=getProviderId(details,provider);
-          phone=phone||getPhone(details);
-          expiry=expiry||getExpiry(details);
-        }
-      }catch(error){console.error("TextVerified reservation detail lookup failed:",String(error));}
-    }
-  }
-  if(!providerOrderId){
-    await updateOrder(orderId,{status:"unknown",provider_state:"provider_order_id_missing",provider_payload:{response_received:true}});
-    return json({success:true,pending:true,order_id:orderId,message:"The provider response is incomplete. Your order is awaiting confirmation; please do not purchase again."},202);
-  }
-  const order=await updateOrder(orderId,{provider_order_id:providerOrderId,phone_number:phone||null,expires_at:expiry,status:phone?"waiting":"unknown",provider_state:phone?"waiting":"number_pending_confirmation",provider_cost_kobo:q.providerCostKobo,provider_payload:{response_received:true}});
-  return json({success:true,order});
+ const catalogue=str(body?.catalogue).toLowerCase(),country=str(body?.country_iso).toUpperCase(),countryName=str(body?.country_name,country);
+ const service=await resolveServiceRef(str(body?.service_ref),catalogue,country),provider=service.provider,serviceCode=service.code,serviceName=service.name;
+ const q=await quote(provider,country,serviceCode,serviceName);if(!q.available)return json({success:false,error:"This service is currently out of stock.",available:false},409);
+ if(provider==="fetchsms"){const wallet=await fetchRequest("/wallet/balance",{},true);if(num(wallet?.balance_cents,-1)<Math.ceil(q.providerUsd*100))return json({success:false,error:"This destination is temporarily unavailable. Please try again later."},503);}
+ const idempotencyKey=str(req.headers.get("idempotency-key"),body.idempotency_key,body.idempotencyKey)||crypto.randomUUID();
+ const reserved=await admin.rpc("sparkle_create_sms_order",{p_user_id:userId,p_provider_key:provider,p_idempotency_key:idempotencyKey,p_country_iso:country,p_country_name:countryName,p_service_code:serviceCode,p_service_name:serviceName,p_customer_price_kobo:q.customerPriceKobo,p_provider_cost_usd:q.providerUsd,p_exchange_rate:q.fx});
+ if(reserved.error){const message=reserved.error.message||"Unable to reserve this order.";if(message.includes("INSUFFICIENT_FUNDS"))return json({success:false,error:"Your wallet balance is too low. Please add funds."},402);return json({success:false,error:"Your order could not be reserved. Please try again."},400);}
+ const reservation=Array.isArray(reserved.data)?reserved.data[0]:reserved.data,orderId=str(reservation?.order_id);if(!orderId)throw new Error("Order reservation did not return an order ID.");
+ if(reservation?.already_exists){const existing=await ownOrder(orderId,userId);return json({success:true,pending:true,order:customerOrder(existing),message:"This request already exists. Open the existing order instead of purchasing again."},202);}
+ let providerData:any;
+ try{
+  if(provider==="fetchsms")providerData=await fetchRequest("/verifications",{method:"POST",headers:{"Idempotency-Key":idempotencyKey},body:JSON.stringify({service:Number(serviceCode)})},true);
+  else if(provider==="textverified")providerData=await tvRequest("/verifications",{method:"POST",headers:{"Idempotency-Key":idempotencyKey},body:JSON.stringify({serviceName,capability:"sms",numberType:"mobile",areaCodeSelectOption:[],carrierSelectOption:[]})});
+  else providerData=await virtualRequest("/customer/purchase",{method:"POST",body:JSON.stringify({service:serviceCode,country})});
+ }catch(error){const status=num((error as any)?.status);if(status>=400&&status<500){await refund(orderId,"failed","Provider rejected number purchase");return json({success:false,error:"A number could not be allocated. Your wallet has been refunded.",refunded:true},409);}await updateOrder(orderId,{status:"unknown",provider_state:"provider_result_unconfirmed"});return json({success:true,pending:true,order_id:orderId,message:"Your number request is being checked. Please do not submit another purchase."},202);}
+ let providerOrderId=getProviderId(providerData,provider),phone=getPhone(providerData),expiry=getExpiry(providerData);
+ if(provider==="textverified"&&!providerOrderId){const selfLink=str(providerData?.href,providerData?.links?.self?.href);if(selfLink){try{const linkUrl=new URL(selfLink);if(linkUrl.hostname==="www.textverified.com"){const details=await tvRequest(linkUrl.pathname+linkUrl.search);providerOrderId=getProviderId(details,provider);phone=phone||getPhone(details);expiry=expiry||getExpiry(details);}}catch(error){console.error("Reservation detail lookup failed:",String(error));}}}
+ if(!providerOrderId){await updateOrder(orderId,{status:"unknown",provider_state:"provider_order_id_missing",provider_payload:{response_received:true}});return json({success:true,pending:true,order_id:orderId,message:"Your number request is awaiting confirmation. Please do not purchase again."},202);}
+ const order=await updateOrder(orderId,{provider_order_id:providerOrderId,phone_number:phone||null,expires_at:expiry,status:phone?"waiting":"unknown",provider_state:phone?"waiting":"number_pending_confirmation",provider_cost_kobo:q.providerCostKobo,provider_payload:{response_received:true}});
+ return json({success:true,order:customerOrder(order)});
 }
 async function actionStatus(orderId:string,userId:string){
   const order=await ownOrder(orderId,userId);
-  if(["refunded","failed","expired","cancelled"].includes(order.status))return json({success:true,order});
-  if(!order.provider_order_id)return json({success:true,pending:true,order});
+  if(["refunded","failed","expired","cancelled"].includes(order.status))return json({success:true,order:customerOrder(order)});
+  if(!order.provider_order_id)return json({success:true,pending:true,order:customerOrder(order)});
   const result=await providerStatus(order);
   const code=findCode(result)||findCode(result?.sms_result);
   const sms=findSms(result)||findSms(result?.sms_result);
@@ -273,12 +239,12 @@ async function actionStatus(orderId:string,userId:string){
   if(code||sms||/^(received|complete|completed|success|successful|verified|finished)$/.test(state)){
     const updated=await updateOrder(order.id,{status:"received",provider_state:state||"received",otp_code:code||order.otp_code,sms_text:sms||order.sms_text,phone_number:phone,code_received_at:order.code_received_at||now,expires_at:expiry});
     if(code||sms)await saveMessage(updated,code,sms,str(result?.sender,result?.from));
-    return json({success:true,order:updated,code_received:true});
+    return json({success:true,order:customerOrder(updated),code_received:true});
   }
   if(/expired|timeout|timed.?out/.test(state)){
     await refund(order.id,"expired","Verification expired before an SMS was received");
     const updated=await ownOrder(order.id,userId);
-    return json({success:true,order:updated,refunded:true});
+    return json({success:true,order:customerOrder(updated),refunded:true});
   }
   if(/cancelled|canceled/.test(state)){
     await refund(order.id,"cancelled","Provider confirmed cancellation");
@@ -296,7 +262,7 @@ async function actionStatus(orderId:string,userId:string){
 async function actionCancel(orderId:string,userId:string){
   const order=await ownOrder(orderId,userId);
   if(order.otp_code||order.status==="received")return json({success:false,error:"A message has already arrived. This order cannot be cancelled or refunded."},409);
-  if(order.status==="refunded")return json({success:true,order,refunded:true});
+  if(order.status==="refunded")return json({success:true,order:customerOrder(order),refunded:true});
   if(!order.provider_order_id)return json({success:false,error:"The provider has not confirmed a number for this request yet. Please refresh or contact support."},409);
   const id=encodeURIComponent(order.provider_order_id);
   try{
@@ -315,7 +281,7 @@ async function actionCancel(orderId:string,userId:string){
   if(code||sms||/complete|received|success|verified/.test(state)){
     const updated=await updateOrder(order.id,{status:"received",provider_state:state||"received",otp_code:code||null,sms_text:sms||null,code_received_at:new Date().toISOString()});
     if(code||sms)await saveMessage(updated,code,sms,str(latest?.sender,latest?.from));
-    return json({success:false,error:"A message arrived before cancellation completed. This order cannot be refunded.",order:updated},409);
+    return json({success:false,error:"A message arrived before cancellation completed. This order cannot be refunded.",order:customerOrder(updated)},409);
   }
   if(!/cancel/.test(state)){
     return json({success:true,pending:true,error:"The provider has not confirmed cancellation. No refund has been processed."},202);
@@ -332,7 +298,7 @@ Deno.serve(async(req:Request)=>{
       if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
       const {data,error}=await admin.from("sparkle_sms_orders").select("id,user_id,provider_key,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,created_at").order("created_at",{ascending:false}).limit(200);
       if(error)throw new Error("Unable to load SMS orders.");
-      return json({success:true,orders:data||[]});
+      return json({success:true,orders:(data||[]).map(customerOrder)});
     }
     if(action==="pricing-list"||action==="pricing-save"){
       if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
@@ -371,6 +337,7 @@ Deno.serve(async(req:Request)=>{
   }catch(error){
     const message=error instanceof Error?error.message:"Unexpected server error.";
     console.error("Sparkle SMS order function:",message);
-    return json({success:false,error:message},400);
+    const safeMessage=/virtualsms|fetchsms|textverified|provider|api key|credential|http \\d{3}|service code|country id/i.test(message)?"We could not complete that request. Please try again.":message;
+    return json({success:false,error:safeMessage},400);
   }
 });
