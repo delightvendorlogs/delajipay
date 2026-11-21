@@ -188,9 +188,14 @@ function base64Url(bytes: Uint8Array) { let binary = ""; for (const byte of byte
 function fromBase64Url(value: string) { const normalized=value.replace(/-/g,"+").replace(/_/g,"/"); const binary=atob(normalized+"=".repeat((4-normalized.length%4)%4)); return Uint8Array.from(binary,ch=>ch.charCodeAt(0)); }
 async function resolveServiceRef(token:string,catalogue:string,country:string){
  const secret=SUPABASE_SERVICE_ROLE_KEY;if(!secret||!token.includes("."))throw new Error("Choose a valid service.");
- const [payload,signature]=token.split(".");const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["verify"]);
- const valid=await crypto.subtle.verify("HMAC",key,fromBase64Url(signature),new TextEncoder().encode(payload));if(!valid)throw new Error("Choose a valid service.");
- const data=JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
+ const [ivPart,encryptedPart]=token.split(".");
+ let data:any;
+ try{
+  const keyBytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(secret));
+  const key=await crypto.subtle.importKey("raw",keyBytes,{name:"AES-GCM"},false,["decrypt"]);
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromBase64Url(ivPart)},key,fromBase64Url(encryptedPart));
+  data=JSON.parse(new TextDecoder().decode(plain));
+ }catch{throw new Error("Choose a valid service.");}
  if(!data||data.country!==country||!data.code||!data.name||Date.now()-Number(data.issued)>30*60*1000)throw new Error("Please refresh the service list and choose again.");
  const expected=catalogue==="usa"&&country==="US"?"textverified":catalogue==="all"&&country==="US"?"fetchsms":catalogue==="all"?"virtualsms":"";
  if(!expected||data.provider!==expected)throw new Error("That service is not available in this destination.");
