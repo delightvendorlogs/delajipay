@@ -53,3 +53,40 @@
 .message-card,.message-code{overflow:visible!important}
 .message-code{position:relative!important;z-index:20!important;isolation:isolate}
 #demo-code{display:inline-block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:30!important;color:#153b63!important}
+
+
+/* Landing demo: the incoming message and received-code panel are separate,
+   normal-flow blocks so neither can cover the other on narrow screens. */
+.phone-shell{width:min(100%,330px);padding:19px 17px 15px;overflow:visible}
+.message-card{position:relative;z-index:1;display:block;overflow:visible;min-height:92px}
+.message-card>p{line-height:1.55;overflow-wrap:anywhere}
+.demo-code-panel{position:relative;z-index:2;display:block;width:100%;margin-top:10px;padding:11px 12px 12px;border:1px solid #9db7d2;border-radius:12px;background:#f5f9ff;color:#173451;box-shadow:0 7px 18px #06132625;overflow:visible}
+.demo-code-heading{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:9px}
+.demo-code-check{width:21px;height:21px;display:grid;place-items:center;flex:0 0 21px;border-radius:50%;background:#d9f7e9;color:#11875b;font-size:12px;font-weight:900}
+.demo-code-heading b,.demo-code-heading small{display:block;line-height:1.3}
+.demo-code-heading b{font-size:10px;color:#183b5c}
+.demo-code-heading small{font-size:8px;color:#73869b;margin-top:2px}
+.demo-code-tag{margin-left:auto;padding:4px 7px;border-radius:5px;background:#dcecf9;color:#456985;font-size:7px;font-weight:900;letter-spacing:.8px}
+.demo-code-value{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:49px;padding:7px 10px;border:1px dashed #9bb5d0;border-radius:8px;background:#eaf1fa}
+.demo-code-value strong{display:block!important;position:static!important;z-index:auto!important;visibility:visible!important;opacity:1!important;min-width:0!important;color:#153b63!important;font:800 clamp(22px,6vw,26px)/1.2 Manrope,sans-serif!important;letter-spacing:3px!important;white-space:nowrap!important}
+.demo-code-value>span{flex:0 0 auto;color:#637d99;font-size:8px;font-weight:900;letter-spacing:.6px}
+.phone-bottom{position:relative;z-index:0}
+.service-showcase{max-width:1150px;margin:-8px auto 34px;padding:0 25px}
+.service-showcase-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:14px}
+.service-showcase-head p{margin:0;color:#8197b3;font-size:10px}
+.service-logo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.service-logo-card{min-height:76px;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid #2c4565;border-radius:13px;background:linear-gradient(145deg,#122541,#0e1c32);color:#dcecff}
+.service-logo-card>b{font-size:12px}
+.service-logo{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:12px;background:#183654;color:#8ce6f7}
+.service-logo svg{width:25px;height:25px}
+.service-logo.whatsapp{background:#123e39;color:#58e49a}
+.service-logo.telegram{background:#153e5c;color:#6fcaff}
+.service-logo.signal{background:#263c68;color:#a9c8ff}
+.service-logo.more-services{background:#203653;color:#9bdcf1;font-size:25px;font-weight:500}
+@media(max-width:760px){.service-showcase{padding:0 17px;margin:4px auto 28px}.service-showcase-head{display:block}.service-showcase-head p{margin-top:5px}.service-logo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.service-logo-card{min-height:67px;padding:11px}}
+@media(max-width:380px){.phone-shell{padding:17px 13px 13px}.demo-code-value strong{font-size:21px!important;letter-spacing:2px!important}.demo-code-value>span{font-size:7px}}
+
+/* Keep floating decorations behind the phone preview and its visible OTP panel. */
+.tag-top,.tag-bottom{z-index:1}
+.phone-shell{z-index:2}
+.demo-code-panel{isolation:isolate}
