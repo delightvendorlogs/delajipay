@@ -424,7 +424,7 @@ async function loadProfile() {
   const heading = document.querySelector("[data-profile-heading]");
   const avatar = document.querySelector(".profile-avatar");
   const setAvatarInitials = (value) => {
-    const words = String(value || "").trim().split(/\\s+/).filter(Boolean);
+    const words = String(value || "").trim().split(/\s+/).filter(Boolean);
     const initials = words.length > 1 ? words[0][0] + words[1][0] : (words[0] || "BJ").slice(0, 2);
     if (avatar) avatar.textContent = initials.toUpperCase();
   };
