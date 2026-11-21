@@ -236,11 +236,11 @@ async function actionBuy(body:any,userId:string,req:Request){
     return json({success:true,pending:true,order_id:orderId,message:"The provider response could not be confirmed. Your request is being checked; please do not submit another purchase."},202);
   }
   const providerOrderId=getProviderId(providerData,provider),phone=getPhone(providerData),expiry=getExpiry(providerData);
-  if(!providerOrderId||!phone){
-    await updateOrder(orderId,{status:"unknown",provider_state:"provider_response_incomplete",provider_payload:{response_received:true}});
-    return json({success:true,pending:true,order_id:orderId,message:"The provider returned an incomplete response. Your order is awaiting confirmation; please do not purchase again."},202);
+  if(!providerOrderId){
+    await updateOrder(orderId,{status:"unknown",provider_state:"provider_order_id_missing",provider_payload:{response_received:true}});
+    return json({success:true,pending:true,order_id:orderId,message:"The provider response is incomplete. Your order is awaiting confirmation; please do not purchase again."},202);
   }
-  const order=await updateOrder(orderId,{provider_order_id:providerOrderId,phone_number:phone,expires_at:expiry,status:"waiting",provider_state:"waiting",provider_cost_kobo:q.providerCostKobo,provider_payload:{response_received:true}});
+  const order=await updateOrder(orderId,{provider_order_id:providerOrderId,phone_number:phone||null,expires_at:expiry,status:phone?"waiting":"unknown",provider_state:phone?"waiting":"number_pending_confirmation",provider_cost_kobo:q.providerCostKobo,provider_payload:{response_received:true}});
   return json({success:true,order});
 }
 async function actionStatus(orderId:string,userId:string){
@@ -252,9 +252,10 @@ async function actionStatus(orderId:string,userId:string){
   const sms=findSms(result)||findSms(result?.sms_result);
   const state=findState(result);
   const expiry=getExpiry(result)||order.expires_at||null;
+  const phone=getPhone(result)||order.phone_number||null;
   const now=new Date().toISOString();
   if(code||sms||/^(received|complete|completed|success|successful|verified|finished)$/.test(state)){
-    const updated=await updateOrder(order.id,{status:"received",provider_state:state||"received",otp_code:code||order.otp_code,sms_text:sms||order.sms_text,code_received_at:order.code_received_at||now,expires_at:expiry});
+    const updated=await updateOrder(order.id,{status:"received",provider_state:state||"received",otp_code:code||order.otp_code,sms_text:sms||order.sms_text,phone_number:phone,code_received_at:order.code_received_at||now,expires_at:expiry});
     if(code||sms)await saveMessage(updated,code,sms,str(result?.sender,result?.from));
     return json({success:true,order:updated,code_received:true});
   }
@@ -268,7 +269,7 @@ async function actionStatus(orderId:string,userId:string){
     const updated=await ownOrder(order.id,userId);
     return json({success:true,order:updated,refunded:true});
   }
-  const updated=await updateOrder(order.id,{status:"waiting",provider_state:state||order.provider_state,expires_at:expiry});
+  const updated=await updateOrder(order.id,{status:"waiting",provider_state:state||order.provider_state,phone_number:phone,expires_at:expiry});
   return json({success:true,order:updated,pending:true});
 }
 async function actionCancel(orderId:string,userId:string){
