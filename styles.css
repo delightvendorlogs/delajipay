@@ -166,3 +166,7 @@ body:has(.auth-panel) .formwrap>.brand{display:block;text-align:center;font-size
 table{width:100%;border-collapse:collapse}th{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:#7b8f98;text-align:left}th,td{padding:11px 12px;border-bottom:1px solid var(--line)}tbody tr:hover{background:#f6fafa}
 .admin-panel{overflow-x:auto}
 .panel form .btn{width:100%;margin-top:6px}
+
+
+/* Keep the profile page clear on small screens: no fixed bottom tab strip. */
+@media(max-width:650px){body.profile-page{padding-bottom:24px!important}body.profile-page .topbar .app-nav{display:none!important}}
