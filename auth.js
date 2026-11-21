@@ -40,6 +40,26 @@ async function guardPage() {
 
 await guardPage();
 
+// A short, branded hand-off after successful authentication.
+if (window.location.pathname.endsWith("/welcome.html")) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const params = new URLSearchParams(window.location.search);
+  const isNew = params.get("mode") === "new";
+  const name = user?.user_metadata?.full_name?.trim();
+  const title = document.querySelector("[data-welcome-title]");
+  const copy = document.querySelector("[data-welcome-copy]");
+  const status = document.querySelector("[data-welcome-status]");
+  if (title) title.textContent = isNew ? `Welcome to BJVERIFY${name ? ", " + name.split(/\\s+/)[0] : ""}!` : `Welcome back${name ? ", " + name.split(/\\s+/)[0] : ""}!`;
+  if (copy) copy.textContent = isNew ? "Your account is ready. Your verification journey starts here." : "You're signed in. Your numbers, messages and wallet are ready.";
+  const next = params.get("next");
+  const destination = next && /^[a-z0-9-]+\\.html$/i.test(next) ? next : "dashboard.html";
+  const continueButton = document.querySelector("[data-welcome-continue]");
+  const continueToDashboard = () => go(destination);
+  continueButton?.addEventListener("click", continueToDashboard);
+  if (status) status.textContent = "Taking you to your dashboard…";
+  window.setTimeout(continueToDashboard, 2600);
+}
+
 // Mark the active customer section without intercepting native navigation.
 const customerNav = document.querySelector(".topbar .app-nav");
 if (customerNav) {
@@ -203,7 +223,7 @@ if (loginForm) {
       return;
     }
     const next = new URLSearchParams(window.location.search).get("next");
-    go(next && /^[a-z0-9-]+\.html$/i.test(next) ? next : "dashboard.html");
+    go("welcome.html?mode=back&next=" + encodeURIComponent(next && /^[a-z0-9-]+\.html$/i.test(next) ? next : "dashboard.html"));
   });
 }
 
@@ -225,7 +245,7 @@ if (signupForm) {
       email, password,
       options: {
         data: { full_name, phone, ...(referralCode ? { referral_code: referralCode } : {}) },
-        emailRedirectTo: new URL("dashboard.html", window.location.href).href
+        emailRedirectTo: new URL("welcome.html?mode=new", window.location.href).href
       }
     });
     if (error) {
@@ -234,9 +254,9 @@ if (signupForm) {
       return;
     }
     if (data.session) {
-      go("dashboard.html");
+      go("welcome.html?mode=new");
     } else {
-      showMessage("Your account has been created. Please check your email (including Spam) and click the confirmation link to verify your address. You will then be taken to your BJVERIFY SMS dashboard.", "success");
+      showMessage("Your account has been created. Please check your email (including Spam) and click the confirmation link to verify your address. You will then be taken to your BJVERIFY dashboard.", "success");
       button.disabled = false; button.textContent = "Create account";
     }
   });
@@ -280,7 +300,10 @@ document.querySelectorAll("[data-signout]").forEach((button) => {
 const profileName = $("#account-name");
 if (profileName) {
   const { data: { user } } = await supabase.auth.getUser();
-  profileName.textContent = user?.user_metadata?.full_name || user?.email || "Customer";
+  const displayName = user?.user_metadata?.full_name || user?.email || "Customer";
+  profileName.textContent = displayName;
+  const welcomeHeading = document.querySelector("[data-welcome-heading]");
+  if (welcomeHeading && user?.user_metadata?.full_name) welcomeHeading.textContent = "Welcome back, " + user.user_metadata.full_name.trim().split(/\\s+/)[0] + ".";
 }
 
 
@@ -392,7 +415,7 @@ async function loadProfile() {
   if (name) name.value = profile?.full_name || user.user_metadata?.full_name || "";
   if (phone) phone.value = profile?.phone || user.user_metadata?.phone || "";
   const heading = document.querySelector("[data-profile-heading]");
-  if (heading) heading.textContent = profile?.full_name || user.user_metadata?.full_name || "BJVERIFY SMS customer";
+  if (heading) heading.textContent = profile?.full_name || user.user_metadata?.full_name || "Your BJVERIFY account";
   const email = document.querySelector("[data-profile-email]");
   if (email) email.textContent = user.email || "—";
   const joined = document.querySelector("[data-profile-joined]");
@@ -420,8 +443,12 @@ async function loadProfile() {
       button.disabled = false; button.textContent = "Save changes";
       return;
     }
-    showMessage("Your profile has been updated.", "success");
-    button.disabled = false; button.textContent = "Save changes";
+    if (heading) heading.textContent = full_name;
+    document.querySelectorAll("#account-name,[data-account-name]").forEach((node) => { node.textContent = full_name; });
+    const welcomeHeading = document.querySelector("[data-welcome-heading]");
+    if (welcomeHeading) welcomeHeading.textContent = "Welcome back, " + full_name.split(/\\s+/)[0] + ".";
+    showMessage("Your profile has been updated. Your name will appear across your BJVERIFY account.", "success");
+    button.disabled = false; button.textContent = "Save profile details";
   });
 }
 
