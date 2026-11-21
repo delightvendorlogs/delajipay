@@ -328,6 +328,12 @@ Deno.serve(async(req:Request)=>{
   if(req.method!=="POST")return json({success:false,error:"Method not allowed."},405);
   try{
     const user=await getUser(req),body=await req.json().catch(()=>({})),action=str(body?.action).toLowerCase();
+    if(action==="admin-orders"){
+      if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
+      const {data,error}=await admin.from("sparkle_sms_orders").select("id,user_id,provider_key,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,created_at").order("created_at",{ascending:false}).limit(200);
+      if(error)throw new Error("Unable to load SMS orders.");
+      return json({success:true,orders:data||[]});
+    }
     if(action==="pricing-list"||action==="pricing-save"){
       if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
       if(action==="pricing-list"){
