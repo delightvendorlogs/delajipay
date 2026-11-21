@@ -37,3 +37,6 @@ a{color:#75dff4;text-decoration:none}
 .notice[data-kind=error]{border-color:#a65c66;background:#42232d;color:#ffdce1}
 .auth-card [hidden]{display:none!important}
 @media(max-width:520px){body{padding:22px 13px}.auth-top{margin-bottom:15px}.auth-card{padding:26px 20px;border-radius:18px}.auth-card h1{font-size:26px}.auth-brand-name{font-size:18px}.auth-brand-mark{width:40px;height:40px}}
+
+/* BJVERIFY identity polish */
+.auth-brand-mark{background:radial-gradient(circle at 28% 20%,#285b82,#10213d 72%);box-shadow:0 0 0 3px #38bde812,0 8px 25px #168acb45;transition:transform .28s ease,box-shadow .28s ease}.auth-brand:hover .auth-brand-mark{transform:rotate(7deg) scale(1.06);box-shadow:0 0 0 4px #38bde81c,0 10px 30px #168acb70}.auth-brand-name{font-weight:850;letter-spacing:-.8px;text-shadow:0 0 18px #5acff51a}
