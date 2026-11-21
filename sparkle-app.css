@@ -21,3 +21,18 @@ body:not(.sparkle-site) .app-footer,body:not(.sparkle-site) .site-footer{backgro
 body:not(.sparkle-site) a{color:#76dff4}
 
 .message-code{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px dashed #456989;background:#0d1d34;border-radius:10px;padding:12px 14px;color:#9fe9f7;font:800 19px Manrope;letter-spacing:1.4px}
+
+.app-brand-mark{border:1px solid #70d7f0;background:linear-gradient(145deg,#193e67,#10213d);color:#8ee9fb;box-shadow:0 8px 24px #168acb38}
+.app-brand-mark svg{width:23px;height:23px;filter:drop-shadow(0 0 7px #58cfff70)}
+.app-brand-word{font:800 20px Manrope;letter-spacing:-.7px;color:#f1f7ff}
+.app-brand-word em{font-size:.75em;font-style:normal;letter-spacing:1.4px;color:#76e2f5;margin-left:3px}
+.app-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.app-service-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#142b49,#10203a)}
+.app-service-card:after{content:"";position:absolute;width:85px;height:85px;border-radius:50%;right:-40px;top:-45px;background:#42c7e51c;transition:transform .3s}
+.app-service-card:hover:after{transform:scale(1.6)}
+.app-wallet{max-width:none;position:relative;overflow:hidden}
+.app-wallet:after{content:"";position:absolute;width:180px;height:180px;right:-55px;top:-85px;border-radius:50%;border:1px solid #8bdff522;box-shadow:0 0 0 22px #8bdff50a,0 0 0 44px #8bdff507}
+.app-welcome{align-items:center}
+.app-welcome h1{font-size:clamp(30px,4vw,42px)}
+@media(max-width:760px){.app-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:420px){.app-grid{grid-template-columns:1fr}.app-brand-word{font-size:18px}}
