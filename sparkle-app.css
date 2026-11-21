@@ -104,3 +104,6 @@ body:not(.bjverify-site) a{color:#76dff4}
 .bjverify-app .recent-activity-row .amount-in{color:#8af0ce}
 .bjverify-app .recent-activity-row .amount-out{color:#ffbdc6}
 @media(max-width:560px){.activity-panel{padding:16px}.activity-heading{align-items:center}.activity-heading .app-panel-intro{max-width:230px}.activity-order-card{padding:13px}.activity-order-top{align-items:flex-start}.activity-status{max-width:118px;white-space:normal;text-align:center}.activity-order-date{margin-left:0;width:100%;order:3}.activity-order-bottom{gap:7px 12px}}
+
+/* BJVERIFY identity polish */
+.app-brand-mark{border:1px solid #8de9fb;background:radial-gradient(circle at 28% 20%,#285b82,#10213d 72%);box-shadow:0 0 0 3px #38bde812,0 8px 25px #168acb45;transition:transform .28s ease,box-shadow .28s ease}.app-brand:hover .app-brand-mark{transform:rotate(7deg) scale(1.06);box-shadow:0 0 0 4px #38bde81c,0 10px 30px #168acb70}.app-brand-word{font-weight:850;letter-spacing:-.9px;text-shadow:0 0 18px #5acff51a}
