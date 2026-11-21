@@ -1,48 +1,57 @@
-# DelajiPay
+# Sparkle SMS
 
-DelajiPay is a mobile-first Nigerian digital payments website for:
+Sparkle SMS is a virtual-number and incoming SMS platform. The former DelajiPay VTU product has been retired from this repository.
 
-- Airtime
-- Mobile data
-- Electricity bill payments
-- Cable TV subscriptions (DStv, GOtv and StarTimes)
+## Product scope
 
-The first release intentionally focuses on these four services. Wallet funding is a supporting account feature, not a separate bill-payment category.
+- Browse supported countries and services.
+- Purchase supported virtual-number verifications.
+- Receive and view incoming SMS in the customer inbox.
+- Wallet funding, account activity, support and administration.
+- No number rentals or recurring number subscriptions.
 
-## Current status
+## Provider routing
 
-- Live in code: auth, wallet ledger + Paystack funding, referrals, support chat, admin area
-- VTpass purchase flow: `supabase/functions/vtpass-purchase` + `purchase.js` (airtime, data, electricity, cable TV)
-- Orders list with status re-check: `orders.js` on the Transactions page
-- Required Edge Function secrets: `VTPASS_API_KEY`, `VTPASS_SECRET_KEY`, `VTPASS_PUBLIC_KEY`, `VTPASS_BASE_URL`
-  (sandbox: `https://sandbox.vtpass.com/api`, live: `https://vtpass.com/api`)
-- Services stay disabled until switched on in the admin Services page
+- United States: Fetch SMS and TextVerified.
+- Other supported countries: VirtualSMS, excluding the United States.
+- The United States must also appear in the all-country search results and offer both USA provider routes.
+- Only one-off verification products are in scope. Rental products and rental-duration choices must not be exposed.
 
-## Architecture
+## Current implementation status
 
-- Frontend: responsive, mobile-first website (static HTML, CSS and JavaScript)
-- Backend: Supabase Auth, PostgreSQL and Edge Functions
-- Payments: Paystack for wallet funding
-- VTU/bill provider: VTpass for airtime, data, electricity and cable TV
-- Hosting: static hosting (for example Cloudflare Pages)
+- Public Sparkle SMS landing page and responsive brand identity.
+- Rebranded login, signup and password recovery.
+- Sparkle customer dashboard, number discovery interface and SMS inbox shell.
+- Existing Supabase Auth, wallet ledger and Paystack funding foundation retained.
+- Legacy VTU catalogue entries disabled and old VTpass Edge Function retired.
+- Live provider catalogues, order purchases, SMS polling/webhooks, and wallet settlement still need to be connected to the Sparkle Supabase project.
 
-## Important financial and security rules
+## Provider credentials
 
-- The database ledger is the source of truth for wallet balances; never trust a balance supplied by the browser.
-- Verify payment gateway webhooks server-side before crediting a wallet.
-- Make payment and provider requests idempotent to prevent duplicate credits or purchases.
-- Handle pending, failed, unknown and reversed transactions safely.
-- Never put Supabase service-role/secret keys or provider API secrets in frontend code.
-- Enable Row Level Security on exposed tables and write policies for each access pattern.
-- Keep an audit trail for administrative wallet adjustments.
+The previous Delight Vendor Logs Supabase project contains read-only reference implementations for VirtualSMS, Fetch SMS and TextVerified. Those implementations have not been modified.
 
-## Before going live
+Sparkle SMS will use its own provider credentials stored as Supabase Edge Function secrets:
 
-1. Test every service in the VTpass sandbox, including a failed order and a pending order.
-2. Switch `VTPASS_BASE_URL` to the live URL and add live keys as Edge Function secrets.
-3. Activate each service in the admin Services page.
-4. Confirm Terms, Privacy and refund wording match how the site works.
+- `VIRTUALSMS_API_KEY`
+- `FETCHSMS_API_KEY`
+- `TEXTVERIFIED_API_USERNAME`
+- `TEXTVERIFIED_API_KEY`
 
-## Development notes
+Never commit provider secrets, service-role keys, or payment credentials to this repository or expose them in browser code.
 
-Do not commit secrets, .env files, service-role keys, payment gateway secrets or provider credentials. Use server-side environment secrets for Edge Functions.
+## Security and financial rules
+
+- Provider requests, pricing and wallet debits must be handled server-side.
+- Use idempotency keys to prevent duplicate orders and duplicate wallet charges.
+- Confirm provider order status before marking a purchase successful or showing an SMS code.
+- Refund failed or expired purchases exactly once.
+- Enforce Row Level Security so customers can only view their own orders and messages.
+- Keep the existing wallet ledger as the source of truth; never trust a browser-supplied balance.
+- Do not display mock stock, prices or sample SMS as live data.
+
+## Hosting and architecture
+
+- Frontend: responsive static HTML, CSS and JavaScript.
+- Backend: Supabase Auth, PostgreSQL and Edge Functions.
+- Wallet funding: existing Paystack integration.
+- Hosting: the repository's existing deployment pipeline.
