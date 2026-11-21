@@ -422,7 +422,15 @@ async function loadProfile() {
   if (name) name.value = profile?.full_name || user.user_metadata?.full_name || "";
   if (phone) phone.value = profile?.phone || user.user_metadata?.phone || "";
   const heading = document.querySelector("[data-profile-heading]");
-  if (heading) heading.textContent = profile?.full_name || user.user_metadata?.full_name || "Your BJVERIFY account";
+  const avatar = document.querySelector(".profile-avatar");
+  const setAvatarInitials = (value) => {
+    const words = String(value || "").trim().split(/\\s+/).filter(Boolean);
+    const initials = words.length > 1 ? words[0][0] + words[1][0] : (words[0] || "BJ").slice(0, 2);
+    if (avatar) avatar.textContent = initials.toUpperCase();
+  };
+  const currentName = profile?.full_name || user.user_metadata?.full_name || "";
+  if (heading) heading.textContent = currentName || "Your BJVERIFY account";
+  setAvatarInitials(currentName);
   const email = document.querySelector("[data-profile-email]");
   if (email) email.textContent = user.email || "—";
   const joined = document.querySelector("[data-profile-joined]");
@@ -451,6 +459,7 @@ async function loadProfile() {
       return;
     }
     if (heading) heading.textContent = full_name;
+    setAvatarInitials(full_name);
     document.querySelectorAll("#account-name,[data-account-name]").forEach((node) => { node.textContent = full_name; });
     const welcomeHeading = document.querySelector("[data-welcome-heading]");
     if (welcomeHeading) welcomeHeading.textContent = "Welcome back, " + full_name.split(/\s+/)[0] + ".";
