@@ -56,6 +56,7 @@ if (window.location.pathname.endsWith("/welcome.html")) {
   const continueButton = document.querySelector("[data-welcome-continue]");
   const continueToDashboard = () => go(destination);
   continueButton?.addEventListener("click", continueToDashboard);
+  window.setTimeout(continueToDashboard, 4200);
   if (status) status.textContent = "Preparing your secure dashboard…";
 
   // Pull real country/service pairs from the live catalogue for the rotating welcome display.
@@ -108,7 +109,6 @@ if (window.location.pathname.endsWith("/welcome.html")) {
     rotate();
     if (items.length > 1) window.setInterval(rotate, 1450);
   }
-  window.setTimeout(continueToDashboard, 4200);
 }
 
 // Mark the active customer section without intercepting native navigation.
