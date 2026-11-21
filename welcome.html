@@ -1,5 +1,30 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#081426"><title>Welcome · BJVERIFY</title><link rel="stylesheet" href="sparkle-auth.css">
 <style>
-.welcome-card{text-align:center;padding:42px 30px}.welcome-mark{width:82px;height:82px;margin:0 auto 24px;border:1px solid #58c9e8;border-radius:25px;background:radial-gradient(circle at 30% 20%,#285b82,#10213d 72%);display:grid;place-items:center;box-shadow:0 0 0 8px #38bde812,0 14px 36px #168acb35;animation:welcomePop .65s cubic-bezier(.2,.8,.2,1) both}.welcome-mark svg{width:43px;height:43px;stroke:#a8f1ff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.welcome-card h1{max-width:none;margin-bottom:12px}.welcome-copy{color:#a9bad0;font-size:13px;line-height:1.8;margin:0 auto 24px;max-width:310px}.welcome-loader{width:42px;height:42px;margin:0 auto 14px;border:3px solid #284664;border-top-color:#68d9f2;border-radius:50%;animation:welcomeSpin .9s linear infinite}.welcome-status{display:block;color:#78dff4;font-size:11px;font-weight:700}.welcome-continue{margin-top:22px;width:100%;min-height:47px;border:0;border-radius:10px;background:linear-gradient(110deg,#5b9cf5,#31c9e4);color:#061327;font:800 12px 'DM Sans',sans-serif;cursor:pointer}@keyframes welcomeSpin{to{transform:rotate(360deg)}}@keyframes welcomePop{from{opacity:0;transform:translateY(12px) scale(.86)}to{opacity:1;transform:translateY(0) scale(1)}}@media(prefers-reduced-motion:reduce){.welcome-mark,.welcome-loader{animation:none}}@media(max-width:520px){.welcome-card{padding:34px 22px}}
-</style></head><body><main class="auth-layout"><section class="auth-card welcome-card"><div class="welcome-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="13" y="4" width="22" height="40" rx="5"/><path d="M19 10h10M21 37h6M18 24l4 4 9-10"/></svg></div><p class="auth-eyebrow">BJVERIFY ACCOUNT</p><h1 data-welcome-title>Welcome to BJVERIFY!</h1><p class="welcome-copy" data-welcome-copy>Your verification journey starts here.</p><div class="welcome-loader" aria-hidden="true"></div><span class="welcome-status" data-welcome-status>Preparing your dashboard…</span><button class="welcome-continue" type="button" data-welcome-continue>Continue to dashboard</button></section></main><script type="module" src="auth.js"></script></body></html>
+.welcome-card{text-align:center;padding:38px 30px 32px}
+.welcome-mark{width:76px;height:76px;margin:0 auto 20px;border:1px solid #58c9e8;border-radius:23px;background:radial-gradient(circle at 30% 20%,#285b82,#10213d 72%);display:grid;place-items:center;box-shadow:0 0 0 8px #38bde812,0 14px 36px #168acb35;animation:welcomePop .65s cubic-bezier(.2,.8,.2,1) both}
+.welcome-mark svg{width:40px;height:40px;stroke:#a8f1ff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.welcome-card h1{max-width:none;margin-bottom:10px}.welcome-copy{color:#a9bad0;font-size:13px;line-height:1.8;margin:0 auto 22px;max-width:310px}
+.welcome-activity{min-height:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;margin:8px 0 18px;padding:12px;border:1px solid #294766;border-radius:13px;background:linear-gradient(130deg,#102642,#0c1b30)}
+.welcome-activity-label{color:#7895b4;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
+.welcome-activity-item{display:flex;align-items:center;justify-content:center;gap:9px;min-height:25px;color:#e7f6ff;font-size:13px;font-weight:800;opacity:1;transition:opacity .35s ease,transform .35s ease}
+.welcome-activity-item.is-changing{opacity:0;transform:translateY(7px)}
+.welcome-activity-icon{width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#1a3b5c;font-size:16px}
+.welcome-progress-track{height:5px;width:100%;overflow:hidden;border-radius:99px;background:#253c58;box-shadow:inset 0 1px 2px #0005}
+.welcome-progress-fill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#5b9cf5,#31d5e6);box-shadow:0 0 14px #42d2f5a0;animation:welcomeProgress 3.8s cubic-bezier(.2,.65,.25,1) forwards}
+.welcome-progress-meta{width:100%;display:flex;justify-content:space-between;color:#829bb8;font-size:9px;font-weight:700}
+.welcome-status{display:block;margin-top:12px;color:#78dff4;font-size:10px;font-weight:700}
+.welcome-continue{margin-top:20px;width:100%;min-height:47px;border:0;border-radius:10px;background:linear-gradient(110deg,#5b9cf5,#31c9e4);color:#061327;font:800 12px 'DM Sans',sans-serif;cursor:pointer}
+@keyframes welcomeProgress{0%{width:0}15%{width:15%}55%{width:62%}85%{width:88%}100%{width:100%}}
+@keyframes welcomePop{from{opacity:0;transform:translateY(12px) scale(.86)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.welcome-mark,.welcome-progress-fill{animation:none}.welcome-progress-fill{width:100%}.welcome-activity-item{transition:none}}
+@media(max-width:520px){.welcome-card{padding:32px 20px}}
+</style></head>
+<body><main class="auth-layout"><section class="auth-card welcome-card">
+<div class="welcome-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="13" y="4" width="22" height="40" rx="5"/><path d="M19 10h10M21 37h6M18 24l4 4 9-10"/></svg></div>
+<p class="auth-eyebrow">BJVERIFY ACCOUNT</p><h1 data-welcome-title>Welcome to BJVERIFY!</h1><p class="welcome-copy" data-welcome-copy>Your verification journey starts here.</p>
+<div class="welcome-activity"><span class="welcome-activity-label">Connecting you to</span><div class="welcome-activity-item" data-welcome-activity><span class="welcome-activity-icon">🌍</span><span>Verification services</span></div></div>
+<div class="welcome-progress-track" role="progressbar" aria-label="Preparing your dashboard" aria-valuemin="0" aria-valuemax="100"><div class="welcome-progress-fill"></div></div>
+<div class="welcome-progress-meta"><span>SECURE CONNECTION</span><span>100%</span></div><span class="welcome-status" data-welcome-status>Preparing your dashboard…</span>
+<button class="welcome-continue" type="button" data-welcome-continue>Continue to dashboard</button>
+</section></main><script type="module" src="auth.js"></script></body></html>
