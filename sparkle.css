@@ -37,3 +37,10 @@
 @keyframes caretBlink{to{visibility:hidden}}
 @media(max-width:900px){.stats-strip{margin:0 22px 35px;padding:18px 10px}.stats-strip article{padding:3px 12px}}
 @media(max-width:680px){.brand-mark{width:35px;height:35px}.brand-word{font-size:18px}.stats-strip{grid-template-columns:repeat(2,1fr);gap:17px;margin:0 18px 30px;padding:17px}.stats-strip article{border-right:0;padding:0 5px}.stats-strip article:nth-child(odd){border-right:1px solid #36516d}.stats-strip strong{font-size:25px}.stats-strip small{font-size:9px}}
+
+/* Keep the illustrative SMS code fully visible on every screen size */
+.message-card{overflow:visible}
+.message-code{min-height:48px;gap:12px;overflow:visible}
+.message-code span#demo-code{display:block!important;visibility:visible!important;opacity:1!important;min-width:112px;min-height:27px;color:#153b63!important;font-size:21px;line-height:1.35;white-space:nowrap;position:relative;z-index:2}
+.message-code small{display:block;flex-shrink:0;white-space:nowrap;font-weight:800;letter-spacing:.5px}
+@media(max-width:380px){.message-code{padding:8px 9px}.message-code span#demo-code{font-size:19px;min-width:100px}}
