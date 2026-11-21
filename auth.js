@@ -45,7 +45,8 @@ if (window.location.pathname.endsWith("/welcome.html")) {
   const { data: { user } } = await supabase.auth.getUser();
   const params = new URLSearchParams(window.location.search);
   const isNew = params.get("mode") === "new";
-  const name = user?.user_metadata?.full_name?.trim();
+  const rawName = user?.user_metadata?.full_name?.trim() || "";
+  const name = rawName && !/^bj\s*verify$/i.test(rawName) ? rawName : "";
   const title = document.querySelector("[data-welcome-title]");
   const copy = document.querySelector("[data-welcome-copy]");
   const status = document.querySelector("[data-welcome-status]");
@@ -274,7 +275,7 @@ if (loginForm) {
       return;
     }
     const next = new URLSearchParams(window.location.search).get("next");
-    go("welcome.html?mode=back&next=" + encodeURIComponent(next && /^[a-z0-9-]+\.html$/i.test(next) ? next : "dashboard.html"));
+    go("welcome.html?v=20261122-progress&mode=back&next=" + encodeURIComponent(next && /^[a-z0-9-]+\.html$/i.test(next) ? next : "dashboard.html"));
   });
 }
 
@@ -305,7 +306,7 @@ if (signupForm) {
       return;
     }
     if (data.session) {
-      go("welcome.html?mode=new");
+      go("welcome.html?v=20261122-progress&mode=new");
     } else {
       showMessage("Your account has been created. Please check your email (including Spam) and click the confirmation link to verify your address. You will then be taken to your BJVERIFY dashboard.", "success");
       button.disabled = false; button.textContent = "Create account";
