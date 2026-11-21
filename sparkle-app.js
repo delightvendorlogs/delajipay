@@ -29,7 +29,7 @@ function renderCountries(){
  results.replaceChildren();if(!filtered.length){note(results,"No matching countries. Try another search.");return;}
  for(const country of filtered){const row=document.createElement("button");row.type="button";row.className="app-country-result country-choice";const name=document.createElement("strong"),meta=document.createElement("small");name.textContent=(country.flag?country.flag+" ":"")+country.name;meta.textContent=country.code==="US"?"United States":"Available destination";row.append(name,meta);row.addEventListener("click",()=>loadServices(country.code,country.name,"all"));results.append(row);}
 }
-async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error)throw error;if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
+async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("BJVERIFY-sms-orders",{body,headers});if(error)throw error;if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
 function renderServices(data){
  if(!providersBox)return;serviceResults=data.services||[];providersBox.replaceChildren();
  const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase(),services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
@@ -59,14 +59,14 @@ function renderServices(data){
 }
 async function loadCountries(){
  if(!results)return;note(results,"Loading available countries…");
- try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});if(error)throw error;countries=data?.countries||[];renderCountries();}
+ try{const {data,error}=await supabase.functions.invoke("BJVERIFY-sms-catalog",{body:{action:"countries"}});if(error)throw error;countries=data?.countries||[];renderCountries();}
  catch(error){note(results,"We couldn't load the country list. Please try again shortly.");console.warn("Country catalogue:",error);}
 }
 async function loadServices(country,name,mode=activeCatalog){
  if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;
  if(heading)heading.textContent=mode==="usa"?"USA services":selectedCountryName+" services";if(description)description.textContent="Choose a service to see its customer price.";
  note(providersBox,"Loading available services…");
- try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
+ try{const {data,error}=await supabase.functions.invoke("BJVERIFY-sms-catalog",{body:{action:"services",country,mode}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
  catch(error){if(request===catalogRequest)note(providersBox,"Services are temporarily unavailable. Please try again.");console.warn("Service catalogue:",error);}
 }
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
@@ -89,7 +89,7 @@ async function loadSmsOrders(){
     if(document.visibilityState!=="visible"||inboxPolling)return;
     inboxPolling=true;
     try{for(const pending of pendingOrders)await invokeOrder({action:"status",order_id:pending.id});}
-    catch(error){console.warn("Sparkle background status check:",error);}
+    catch(error){console.warn("BJVERIFY background status check:",error);}
     finally{inboxPolling=false;void loadSmsOrders();}
    },15000);
   }
@@ -111,7 +111,7 @@ async function loadSmsOrders(){
    }
    box.append(card);
   }
- }catch(error){note(box,"Your SMS orders could not be loaded. Please refresh and try again.");console.warn("Sparkle orders:",error);}
+ }catch(error){note(box,"Your SMS orders could not be loaded. Please refresh and try again.");console.warn("BJVERIFY orders:",error);}
 }
 const initialParams=new URLSearchParams(location.search);
 if(results){
@@ -164,7 +164,7 @@ async function loadAdminSmsOrders(){
  note(box,"Loading SMS orders…");
  try{
   const data=await invokeOrder({action:"admin-orders"}),orders=data.orders||[];box.replaceChildren();
-  if(!orders.length){note(box,"No Sparkle SMS orders have been placed yet.");return;}
+  if(!orders.length){note(box,"No BJVERIFY SMS orders have been placed yet.");return;}
   box.className="app-list";
   for(const order of orders){
    const row=document.createElement("article");row.className="app-panel";row.style.marginTop="0";
@@ -211,6 +211,6 @@ async function loadDashboardSmsOrders(){
    const price=document.createElement("strong");price.className="activity-order-price";price.textContent=money(order.customer_price_kobo);
    bottom.append(number,date,price);card.append(top,bottom);box.append(card);
   }
- }catch(error){note(box,"Your number activity could not be loaded. Please refresh to try again.");console.warn("Sparkle dashboard number activity:",error);}
+ }catch(error){note(box,"Your number activity could not be loaded. Please refresh to try again.");console.warn("BJVERIFY dashboard number activity:",error);}
 }
 if(document.querySelector("#dashboard-sms-orders"))void loadDashboardSmsOrders();
