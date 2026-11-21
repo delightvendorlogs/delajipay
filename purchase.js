@@ -1,3 +1,4 @@
+import { askConfirm } from "./dialog.js";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 const supabase = createClient("https://fgkkzxfaxgkkcbkwbamx.supabase.co", "sb_publishable_ImuiMjql4SAceGSyvvgeww_YPC9X4I_", {
   auth: { persistSession: true, autoRefreshToken: true }
@@ -57,7 +58,7 @@ form.addEventListener("submit", async (ev) => {
   if (kind === "data") { Object.assign(body, { network: v("network"), variationCode: v("plan") }); summary = `${$("#plan").selectedOptions[0]?.text} for ${body.phone}`; }
   if (kind === "electricity") { Object.assign(body, { serviceID: v("provider"), meter: v("meter"), meterType: v("meterType"), amount: Number(v("amount")) }); summary = `${naira(body.amount)} electricity for meter ${body.meter}`; }
   if (kind === "cable") { Object.assign(body, { serviceID: v("provider"), smartcard: v("smartcard"), variationCode: v("plan") }); summary = `${$("#plan").selectedOptions[0]?.text} for card ${body.smartcard}`; }
-  if (!confirm(`Confirm payment:\n${summary}\n\nThis will be taken from your wallet.`)) return;
+  if (!(await askConfirm({ title: "Confirm payment", message: summary, note: "This amount will be taken from your wallet.", confirmText: "Pay now" }))) return;
 
   btn.disabled = true; const label = btn.textContent; btn.textContent = "Processing…";
   try {
