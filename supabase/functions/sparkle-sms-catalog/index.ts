@@ -123,10 +123,11 @@ function base64Url(bytes: Uint8Array) {
 }
 async function serviceRef(provider: string, country: string, code: string, name: string) {
   if (!SERVICE_REF_SECRET) throw new Error("Service catalogue is unavailable.");
-  const payload = base64Url(new TextEncoder().encode(JSON.stringify({ provider, country, code, name, issued: Date.now() })));
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(SERVICE_REF_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
-  return payload + "." + base64Url(new Uint8Array(signature));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const keyBytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(SERVICE_REF_SECRET));
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["encrypt"]);
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ provider, country, code, name, issued: Date.now() })));
+  return base64Url(iv) + "." + base64Url(new Uint8Array(encrypted));
 }
 async function countries() {
   const warnings: string[] = []; let international: any[] = [];
