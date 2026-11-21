@@ -91,15 +91,15 @@
       numberNode.textContent="";codeNode.textContent="";
       statusNode.textContent="Selecting a number…";messageNode.textContent="Your number is being prepared.";timeNode.textContent="Connecting…";
       floatTitle.textContent="Number selected";floatCopy.textContent="Preparing your message inbox";
-      await typeText(numberNode,"+1 (202) 555-0148",85);
+      await typeText(numberNode,"+1 (202) 555-0148",125);
       statusNode.textContent="Number ready · Demo";timeNode.textContent="Waiting for SMS…";
       floatTitle.textContent="Number is ready";floatCopy.textContent="Now watching for an incoming SMS";
       await new Promise(resolve=>setTimeout(resolve,reducedMotion?300:950));
       statusNode.textContent="Incoming message";timeNode.textContent="Just now";
       messageNode.textContent="A verification message has arrived.";
       floatTitle.textContent="Message received";floatCopy.textContent="Your code is now in the inbox";
-      await typeText(codeNode,"482 190",125);
-      await new Promise(resolve=>setTimeout(resolve,reducedMotion?2600:3200));
+      await typeText(codeNode,"482 190",240);
+      await new Promise(resolve=>setTimeout(resolve,reducedMotion?4500:6500));
       runDemo();
     }
     runDemo();
