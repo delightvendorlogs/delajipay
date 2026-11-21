@@ -235,7 +235,23 @@ async function actionBuy(body:any,userId:string,req:Request){
     await updateOrder(orderId,{status:"unknown",provider_state:"provider_result_unconfirmed"});
     return json({success:true,pending:true,order_id:orderId,message:"The provider response could not be confirmed. Your request is being checked; please do not submit another purchase."},202);
   }
-  const providerOrderId=getProviderId(providerData,provider),phone=getPhone(providerData),expiry=getExpiry(providerData);
+  let providerOrderId=getProviderId(providerData,provider);
+  let phone=getPhone(providerData);
+  let expiry=getExpiry(providerData);
+  if(provider==="textverified"&&!providerOrderId){
+    const selfLink=str(providerData?.href,providerData?.links?.self?.href);
+    if(selfLink){
+      try{
+        const linkUrl=new URL(selfLink);
+        if(linkUrl.hostname==="www.textverified.com"){
+          const details=await tvRequest(linkUrl.pathname+linkUrl.search);
+          providerOrderId=getProviderId(details,provider);
+          phone=phone||getPhone(details);
+          expiry=expiry||getExpiry(details);
+        }
+      }catch(error){console.error("TextVerified reservation detail lookup failed:",String(error));}
+    }
+  }
   if(!providerOrderId){
     await updateOrder(orderId,{status:"unknown",provider_state:"provider_order_id_missing",provider_payload:{response_received:true}});
     return json({success:true,pending:true,order_id:orderId,message:"The provider response is incomplete. Your order is awaiting confirmation; please do not purchase again."},202);
