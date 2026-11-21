@@ -285,6 +285,11 @@ async function actionStatus(orderId:string,userId:string){
     const updated=await ownOrder(order.id,userId);
     return json({success:true,order:updated,refunded:true});
   }
+  if(/failed|rejected|declined/.test(state)){
+    await refund(order.id,"failed","Provider marked the verification as failed");
+    const updated=await ownOrder(order.id,userId);
+    return json({success:true,order:updated,refunded:true});
+  }
   const updated=await updateOrder(order.id,{status:"waiting",provider_state:state||order.provider_state,phone_number:phone,expires_at:expiry});
   return json({success:true,order:updated,pending:true});
 }
