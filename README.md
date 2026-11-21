@@ -1,6 +1,6 @@
 # Sparkle SMS
 
-Sparkle SMS is a virtual-number and incoming SMS platform. The former DelajiPay VTU product has been retired from this repository.
+Sparkle SMS is a virtual-number and incoming SMS platform. The former DelajiPay bill-payment product has been retired from this repository.
 
 ## Product scope
 
@@ -23,7 +23,7 @@ Sparkle SMS is a virtual-number and incoming SMS platform. The former DelajiPay 
 - Rebranded login, signup and password recovery.
 - Sparkle customer dashboard, number discovery interface and SMS inbox shell.
 - Existing Supabase Auth, wallet ledger and Paystack funding foundation retained.
-- Legacy VTU catalogue entries disabled and old VTpass Edge Function retired.
+- Legacy bill-payment catalogue entries disabled and old retired purchase endpoint retired.
 - Live country/service catalogues, price quotes, one-off number purchases, SMS status checks, inbox records and idempotent wallet refunds are implemented in Sparkle Supabase. Provider API credentials still need to be added to the Sparkle project before live supplier requests can succeed.
 
 ## Provider credentials
