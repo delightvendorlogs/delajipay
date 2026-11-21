@@ -236,7 +236,7 @@ if (signupForm) {
     if (data.session) {
       go("dashboard.html");
     } else {
-      showMessage("Your account has been created. Please check your email (including Spam) and click the confirmation link to verify your address. You will then be taken to your DelajiPay dashboard.", "success");
+      showMessage("Your account has been created. Please check your email (including Spam) and click the confirmation link to verify your address. You will then be taken to your Sparkle SMS dashboard.", "success");
       button.disabled = false; button.textContent = "Create account";
     }
   });
@@ -392,7 +392,7 @@ async function loadProfile() {
   if (name) name.value = profile?.full_name || user.user_metadata?.full_name || "";
   if (phone) phone.value = profile?.phone || user.user_metadata?.phone || "";
   const heading = document.querySelector("[data-profile-heading]");
-  if (heading) heading.textContent = profile?.full_name || user.user_metadata?.full_name || "DelajiPay customer";
+  if (heading) heading.textContent = profile?.full_name || user.user_metadata?.full_name || "Sparkle SMS customer";
   const email = document.querySelector("[data-profile-email]");
   if (email) email.textContent = user.email || "—";
   const joined = document.querySelector("[data-profile-joined]");
@@ -475,7 +475,7 @@ void Promise.all([
   loadTransactionDetails(),
   loadProfile(),
   loadNotifications()
-]).catch((error) => console.warn("DelajiPay page data could not be fully loaded:", error));
+]).catch((error) => console.warn("Sparkle SMS page data could not be fully loaded:", error));
 
 
 async function loadRecentActivity() {
