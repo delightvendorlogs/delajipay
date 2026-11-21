@@ -143,7 +143,7 @@ function getExpiry(data:any){const raw=str(data?.expires_at,data?.expiresAt,data
 function findCode(root:any):string{
   const seen=new Set<object>(),stack=[root];
   while(stack.length){const v=stack.pop();if(!v||typeof v!=="object"||seen.has(v))continue;seen.add(v);
-    for(const [k,x] of Object.entries(v)){if(/^(code|otp|verificationcode|verification_code|smscode|sms_code)$/i.test(k)&&typeof x==="string"&&x.trim())return x.trim();if(x&&typeof x==="object")stack.push(x);}
+    for(const [k,x] of Object.entries(v)){if(/^(code|otp|verificationcode|verification_code|smscode|sms_code)$/i.test(k)&&(typeof x==="string"||typeof x==="number")&&String(x).trim())return String(x).trim();if(x&&typeof x==="object")stack.push(x);}
   }return "";
 }
 function findSms(root:any):string{
