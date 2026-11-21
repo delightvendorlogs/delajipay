@@ -9,34 +9,22 @@ DelajiPay is a mobile-first Nigerian digital payments website for:
 
 The first release intentionally focuses on these four services. Wallet funding is a supporting account feature, not a separate bill-payment category.
 
-## Planned customer features
+## Current status
 
-- Sign up, sign in and account profile
-- Wallet balance and secure wallet funding
-- Airtime, data, electricity and cable-TV purchases
-- Transaction history, statuses and receipts
-- Notifications and customer support
-- Referral programme
-
-## Planned admin features
-
-- Overview dashboard
-- Customer management
-- Wallet funding and adjustments with an audit trail
-- Transactions and order status management
-- Provider configuration and integration health
-- Pricing, margins and service availability
-- Referral settings, rewards and withdrawals
-- Reports, notifications and support
-- Admin roles and security
+- Live in code: auth, wallet ledger + Paystack funding, referrals, support chat, admin area
+- VTpass purchase flow: `supabase/functions/vtpass-purchase` + `purchase.js` (airtime, data, electricity, cable TV)
+- Orders list with status re-check: `orders.js` on the Transactions page
+- Required Edge Function secrets: `VTPASS_API_KEY`, `VTPASS_SECRET_KEY`, `VTPASS_PUBLIC_KEY`, `VTPASS_BASE_URL`
+  (sandbox: `https://sandbox.vtpass.com/api`, live: `https://vtpass.com/api`)
+- Services stay disabled until switched on in the admin Services page
 
 ## Architecture
 
-- Frontend: responsive, mobile-first website
+- Frontend: responsive, mobile-first website (static HTML, CSS and JavaScript)
 - Backend: Supabase Auth, PostgreSQL and Edge Functions
-- Payment gateway: to be selected for wallet funding
-- VTU/bill provider: to be selected for airtime, data, electricity and cable TV
-- Hosting: to be selected before deployment
+- Payments: Paystack for wallet funding
+- VTU/bill provider: VTpass for airtime, data, electricity and cable TV
+- Hosting: static hosting (for example Cloudflare Pages)
 
 ## Important financial and security rules
 
@@ -48,16 +36,12 @@ The first release intentionally focuses on these four services. Wallet funding i
 - Enable Row Level Security on exposed tables and write policies for each access pattern.
 - Keep an audit trail for administrative wallet adjustments.
 
-## Build stages
+## Before going live
 
-1. Confirm the customer experience and create the responsive frontend foundation.
-2. Design and secure the Supabase database schema.
-3. Implement authentication and customer profiles.
-4. Implement wallet ledger and funding verification.
-5. Integrate one VTU/bill provider for the four launch services.
-6. Build the admin dashboard and operational controls.
-7. Test success, failure, timeout, duplicate-request and refund scenarios.
-8. Deploy and complete launch checks.
+1. Test every service in the VTpass sandbox, including a failed order and a pending order.
+2. Switch `VTPASS_BASE_URL` to the live URL and add live keys as Edge Function secrets.
+3. Activate each service in the admin Services page.
+4. Confirm Terms, Privacy and refund wording match how the site works.
 
 ## Development notes
 
