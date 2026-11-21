@@ -119,7 +119,7 @@ async function countries() {
     const result = await virtualSmsRequest("/customer/countries");
     international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US"));
   } catch (error) {
-    warnings.push("International catalogue: " + (error instanceof Error ? error.message : "unavailable"));
+    warnings.push("International catalogue temporarily unavailable.");
   }
   const usa = { code: "US", name: "United States", flag: "🇺🇸", available: true, aliases: ["USA", "US"], providers: ["fetchsms", "textverified"] };
   const deduped = new Map<string, any>();
@@ -143,7 +143,7 @@ async function services(country: string) {
     const providers = results.map((r,i)=>r.status==="fulfilled"?r.value:{
       provider_key:i===0?"fetchsms":"textverified",
       provider_name:i===0?"Fetch SMS":"TextVerified",
-      country:"US",services:[],error:r.reason instanceof Error?r.reason.message:"Provider unavailable"
+      country:"US",services:[],error:"Provider catalogue temporarily unavailable."
     });
     return { success:true,country:"US",providers };
   }
