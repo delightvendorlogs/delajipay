@@ -225,7 +225,7 @@ if (signupForm) {
       email, password,
       options: {
         data: { full_name, phone, ...(referralCode ? { referral_code: referralCode } : {}) },
-        emailRedirectTo: "https://delightvendorlogs.github.io/delajipay/dashboard.html"
+        emailRedirectTo: "https://delightvendorlogs.github.io/Sparkle SMS/dashboard.html"
       }
     });
     if (error) {
