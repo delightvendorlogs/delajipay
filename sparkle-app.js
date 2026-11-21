@@ -110,6 +110,7 @@ document.querySelector("#service-search")?.addEventListener("input",()=>{if(sele
 document.querySelectorAll("[data-country]").forEach(button=>button.addEventListener("click",()=>loadServices(button.dataset.country,button.dataset.country==="US"?"United States":"International destinations")));
 const dashboardSearch=document.querySelector("#dashboard-number-search");
 dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?q="+encodeURIComponent(dashboardSearch.value);});
+let inboxPollTimer=null,inboxPolling=false;
 async function loadSmsOrders(){
  const box=document.querySelector("#sms-orders");if(!box)return;
  note(box,"Loading your SMS orders…");
@@ -117,6 +118,17 @@ async function loadSmsOrders(){
   const data=await invokeOrder({action:"orders"});const orders=data.orders||[];box.replaceChildren();
   if(!orders.length){note(box,"No number purchases yet. Choose a supported country to get started.");return;}
   box.className="app-list";
+  const pendingOrders=orders.filter(order=>["waiting","unknown","creating"].includes(order.status)).slice(0,5);
+  if(inboxPollTimer){clearTimeout(inboxPollTimer);inboxPollTimer=null;}
+  if(pendingOrders.length){
+   inboxPollTimer=setTimeout(async()=>{
+    if(document.visibilityState!=="visible"||inboxPolling)return;
+    inboxPolling=true;
+    try{for(const pending of pendingOrders)await invokeOrder({action:"status",order_id:pending.id});}
+    catch(error){console.warn("Sparkle background status check:",error);}
+    finally{inboxPolling=false;void loadSmsOrders();}
+   },15000);
+  }
   for(const order of orders){
    const card=document.createElement("article");card.className="app-panel";card.style.marginTop="0";
    const title=document.createElement("h2");title.textContent=order.service_name+" · "+order.country_name;
