@@ -185,22 +185,32 @@ async function loadAdminSmsOrders(){
 }
 if(document.querySelector("#admin-sms-orders"))void loadAdminSmsOrders();
 
+function orderStatusLabel(value){
+ const labels={waiting:"Waiting for SMS",unknown:"Confirming number",creating:"Preparing number",received:"Code received",completed:"Completed",expired:"Expired",failed:"Failed",cancelled:"Cancelled",refunded:"Refunded"};
+ return labels[String(value||"").toLowerCase()]||"In progress";
+}
 async function loadDashboardSmsOrders(){
  const box=document.querySelector("#dashboard-sms-orders");if(!box)return;
  note(box,"Loading your latest number orders…");
  try{
-  const data=await invokeOrder({action:"orders"}),orders=(data.orders||[]).slice(0,3);box.replaceChildren();
-  if(!orders.length){note(box,"No number orders yet. Explore the catalogue to get started.");return;}
-  box.className="app-list";
+  const data=await invokeOrder({action:"orders"}),orders=(data.orders||[]).slice(0,4);box.replaceChildren();
+  if(!orders.length){note(box,"No number orders yet. Your purchases will appear here.");return;}
+  box.className="activity-feed";
   for(const order of orders){
-   const row=document.createElement("article");row.className="app-list-row";
-   const info=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small"),status=document.createElement("span");
-   title.textContent=order.service_name+" · "+order.country_name;
-   meta.textContent=order.phone_number||"Number confirmation pending";
-   status.className="provider-region";status.textContent=String(order.status||"pending").toUpperCase();
-   info.append(title,meta);row.append(info,status);box.append(row);
+   const card=document.createElement("a");card.className="activity-order-card";card.href="inbox.html";
+   const top=document.createElement("div");top.className="activity-order-top";
+   const identity=document.createElement("div");identity.className="activity-order-identity";
+   const service=document.createElement("strong");service.textContent=order.service_name||"Virtual number";
+   const country=document.createElement("span");country.textContent=order.country_name||"Destination";
+   identity.append(service,country);
+   const status=document.createElement("span");status.className="activity-status status-"+String(order.status||"pending").toLowerCase();status.textContent=orderStatusLabel(order.status);
+   top.append(identity,status);
+   const bottom=document.createElement("div");bottom.className="activity-order-bottom";
+   const number=document.createElement("span");number.className="activity-order-number";number.textContent=order.phone_number||"Number confirmation pending";
+   const date=document.createElement("span");date.className="activity-order-date";date.textContent=order.created_at?new Date(order.created_at).toLocaleString("en-NG",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"Recent order";
+   const price=document.createElement("strong");price.className="activity-order-price";price.textContent=money(order.customer_price_kobo);
+   bottom.append(number,date,price);card.append(top,bottom);box.append(card);
   }
-  const link=document.createElement("a");link.className="app-button secondary";link.href="inbox.html";link.textContent="Open SMS inbox";link.style.marginTop="10px";box.append(link);
- }catch(error){note(box,"Your number activity could not be loaded. Open the inbox to try again.");}
+ }catch(error){note(box,"Your number activity could not be loaded. Please refresh to try again.");console.warn("Sparkle dashboard number activity:",error);}
 }
 if(document.querySelector("#dashboard-sms-orders"))void loadDashboardSmsOrders();
