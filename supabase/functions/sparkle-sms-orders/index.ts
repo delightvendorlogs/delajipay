@@ -47,7 +47,7 @@ async function requestJson(url: string, headers: Record<string,string> = {}, opt
   const raw = await response.text();
   let data: any = {};
   try { data = raw ? JSON.parse(raw) : {}; } catch { data = { message: raw }; }
-  if (!response.ok) { const error = new Error(str(data?.detail,data?.message,data?.error,"Provider request failed ("+response.status+").")); (error as any).status=response.status; (error as any).data=data; throw error; }
+  if (!response.ok || data?.success === false) { const status=response.status>=400?response.status:400; const error = new Error(str(data?.detail,data?.message,data?.error,"Provider request failed ("+status+").")); (error as any).status=status; (error as any).data=data; throw error; }
   return data;
 }
 async function virtualRequest(path: string, options: RequestInit = {}) {
