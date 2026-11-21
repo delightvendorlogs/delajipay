@@ -39,7 +39,7 @@ function normalizeCountry(item: any) {
   return code && name ? { code, name, flag: str(item?.flag, item?.emoji), available: item?.available !== false } : null;
 }
 function cleanServiceName(value: string) {
-  return value.replace(/\\b(?:virtual\\s*sms|virtualsms|fetch\\s*sms|fetchsms|text\\s*verified|textverified)\\b/gi, "").replace(/[|·•:–—-]{2,}/g, " ").replace(/\\s{2,}/g, " ").trim();
+  return value.replace(/\b(?:virtual\s*sms|virtualsms|fetch\s*sms|fetchsms|text\s*verified|textverified)\b/gi, "").replace(/[|·•:–—-]{2,}/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 function normalizeService(item: any) {
   const code = str(item?.service_code, item?.serviceCode, item?.code, item?.id, item?.service, item?.key, item?.slug);
