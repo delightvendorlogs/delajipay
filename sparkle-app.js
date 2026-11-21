@@ -9,7 +9,8 @@ const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN"
 function note(parent,message){const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
 function renderCountries(){
  if(!results)return;
- const q=(document.querySelector("#country-search")?.value||new URLSearchParams(location.search).get("q")||"").trim().toLowerCase();
+ const countryInput=document.querySelector("#country-search");
+ const q=(countryInput?countryInput.value:(new URLSearchParams(location.search).get("q")||"")).trim().toLowerCase();
  const filtered=countries.filter(c=>(c.name+" "+c.code+" "+(c.aliases||[]).join(" ")).toLowerCase().includes(q));
  results.replaceChildren();
  if(!filtered.length){note(results,"No matching countries in the connected provider catalogue.");return;}
@@ -135,6 +136,8 @@ async function loadSmsOrders(){
   }
  }catch(error){note(box,"Your SMS orders could not be loaded. Please refresh and try again.");console.warn("Sparkle orders:",error);}
 }
+const initialCountrySearch=document.querySelector("#country-search");
+if(initialCountrySearch)initialCountrySearch.value=new URLSearchParams(location.search).get("q")||"";
 if(results)void loadCountries();
 if(document.querySelector("#sms-orders"))void loadSmsOrders();
 
