@@ -49,10 +49,10 @@ if (window.location.pathname.endsWith("/welcome.html")) {
   const title = document.querySelector("[data-welcome-title]");
   const copy = document.querySelector("[data-welcome-copy]");
   const status = document.querySelector("[data-welcome-status]");
-  if (title) title.textContent = isNew ? `Welcome to BJVERIFY${name ? ", " + name.split(/\\s+/)[0] : ""}!` : `Welcome back${name ? ", " + name.split(/\\s+/)[0] : ""}!`;
+  if (title) title.textContent = isNew ? `Welcome to BJVERIFY${name ? ", " + name.split(/\s+/)[0] : ""}!` : `Welcome back${name ? ", " + name.split(/\s+/)[0] : ""}!`;
   if (copy) copy.textContent = isNew ? "Your account is ready. Your verification journey starts here." : "You're signed in. Your numbers, messages and wallet are ready.";
   const next = params.get("next");
-  const destination = next && /^[a-z0-9-]+\\.html$/i.test(next) ? next : "dashboard.html";
+  const destination = next && /^[a-z0-9-]+\.html$/i.test(next) ? next : "dashboard.html";
   const continueButton = document.querySelector("[data-welcome-continue]");
   const continueToDashboard = () => go(destination);
   continueButton?.addEventListener("click", continueToDashboard);
@@ -303,7 +303,14 @@ if (profileName) {
   const displayName = user?.user_metadata?.full_name || user?.email || "Customer";
   profileName.textContent = displayName;
   const welcomeHeading = document.querySelector("[data-welcome-heading]");
-  if (welcomeHeading && user?.user_metadata?.full_name) welcomeHeading.textContent = "Welcome back, " + user.user_metadata.full_name.trim().split(/\\s+/)[0] + ".";
+  if (welcomeHeading && user?.user_metadata?.full_name) welcomeHeading.textContent = "Welcome back, " + user.user_metadata.full_name.trim().split(/\s+/)[0] + ".";
+}
+
+const dashboardWelcome = document.querySelector("[data-welcome-heading]");
+if (dashboardWelcome && !profileName) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const savedName = user?.user_metadata?.full_name?.trim();
+  if (savedName) dashboardWelcome.textContent = "Welcome back, " + savedName.split(/\s+/)[0] + ".";
 }
 
 
@@ -446,7 +453,7 @@ async function loadProfile() {
     if (heading) heading.textContent = full_name;
     document.querySelectorAll("#account-name,[data-account-name]").forEach((node) => { node.textContent = full_name; });
     const welcomeHeading = document.querySelector("[data-welcome-heading]");
-    if (welcomeHeading) welcomeHeading.textContent = "Welcome back, " + full_name.split(/\\s+/)[0] + ".";
+    if (welcomeHeading) welcomeHeading.textContent = "Welcome back, " + full_name.split(/\s+/)[0] + ".";
     showMessage("Your profile has been updated. Your name will appear across your BJVERIFY account.", "success");
     button.disabled = false; button.textContent = "Save profile details";
   });
