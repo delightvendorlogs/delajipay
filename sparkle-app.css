@@ -41,3 +41,25 @@ body:not(.sparkle-site) a{color:#76dff4}
 .brand .brand-mark svg{width:25px;height:25px;filter:drop-shadow(0 0 7px #58cfff70)}
 .brand .brand-word{font-size:20px;letter-spacing:-.8px;color:#f0f7ff}
 .brand .brand-word .brand-light{font-size:.76em;letter-spacing:1.5px;margin-left:3px;color:#76e2f5}
+
+/* Customer-facing number catalogue: clean country routes, no provider configuration exposed */
+.number-entry-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.number-entry-card{display:flex;align-items:center;gap:14px;min-width:0;padding:18px;border:1px solid #2d4969;border-radius:14px;background:linear-gradient(145deg,#142d4c,#10213b);transition:transform .2s,border-color .2s}
+.number-entry-card:hover{transform:translateY(-2px);border-color:#5bafd0}
+.number-entry-flag{width:48px;height:48px;display:grid;place-items:center;flex:0 0 48px;border-radius:13px;background:#1b456b;font-size:25px}
+.number-entry-card strong,.number-entry-card small{display:block}
+.number-entry-card strong{font:800 15px Manrope;color:#eef7ff}
+.number-entry-card small{margin-top:3px;color:#9aabc4;font-size:10px}
+.number-entry-arrow{margin-left:auto;color:#78e1f4;font-size:20px}
+.catalogue-tabs{display:flex;gap:9px;margin:16px 0 18px}
+.catalogue-tab{flex:1;min-height:48px;padding:10px 14px;border:1px solid #36516f;border-radius:10px;background:#0c1b31;color:#c5d7eb;font:700 12px 'DM Sans',sans-serif;cursor:pointer}
+.catalogue-tab[aria-selected=true]{border-color:#62c9e8;background:linear-gradient(110deg,#1d4d70,#17445a);color:#fff;box-shadow:0 0 0 3px #43c3e51a}
+.country-search-field,.service-search-field{max-width:100%;margin:0 0 15px}
+.app-country-result button{min-width:76px}
+.provider-card{grid-column:1/-1}
+.provider-card h3{font-size:14px}
+.provider-card .app-list{margin-top:12px}
+.app-list-row{align-items:center}
+.app-list-row>div:last-child{min-width:112px}
+.app-list-row .app-button{white-space:nowrap}
+@media(max-width:560px){.number-entry-grid{grid-template-columns:1fr}.number-entry-card{padding:15px}.catalogue-tabs{gap:7px}.catalogue-tab{font-size:11px;padding:9px 7px}.app-list-row{align-items:flex-start}.app-list-row>div:last-child{min-width:100px}}
