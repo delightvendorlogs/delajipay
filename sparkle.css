@@ -90,3 +90,27 @@
 .tag-top,.tag-bottom{z-index:1}
 .phone-shell{z-index:2}
 .demo-code-panel{isolation:isolate}
+
+/* Landing phone preview: keep floating accents in front, outside the readable phone area. */
+.hero-visual{isolation:isolate;overflow:visible}
+.phone-shell{position:relative;z-index:2}
+.float-tag{z-index:5;pointer-events:none}
+.tag-top{top:35px;right:-80px}
+.tag-bottom{bottom:35px;left:-82px}
+.demo-code-panel[hidden]{display:none!important}
+.demo-code-panel:not([hidden]){animation:demoCodeReveal .35s ease-out both}
+.demo-code-check{background:#d9f7e9!important;color:#11875b!important;box-shadow:0 0 0 3px #d9f7e955}
+.demo-code-heading b{color:#13845c!important}
+@keyframes demoCodeReveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){
+  .tag-top{right:-65px}
+  .tag-bottom{left:-68px}
+}
+@media(max-width:680px){
+  .hero-visual{min-height:590px;overflow:visible}
+  .phone-shell{margin-top:34px;z-index:2}
+  .float-tag{animation:none!important}
+  .tag-top{top:0;right:50%;left:auto;transform:translateX(50%)}
+  .tag-bottom{bottom:0;left:50%;right:auto;transform:translateX(-50%)}
+  .sparkle-star{z-index:3;pointer-events:none}
+}
