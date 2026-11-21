@@ -38,7 +38,7 @@
           <div class="phone-heading"><div><small>YOUR INBOX</small><h3>Messages</h3></div><span class="inbox-count">01 NEW</span></div>
           <div class="number-card"><div class="number-card-top"><span class="country-flag">🇺🇸</span><span class="number-label">NUMBER PREVIEW</span><span class="number-status"><span class="active-dot"></span> DEMO</span></div><strong class="typed-number"><span id="demo-number" aria-label="Animated demo number"></span><i class="typing-caret"></i></strong><div class="number-card-bottom"><span>United States · Example only</span><span class="demo-chip">LIVE-STYLE PREVIEW</span></div></div>
           <div class="message-label"><span>INCOMING SMS PREVIEW</span><span id="demo-message-time">Waiting…</span></div>
-          <div class="message-card"><div class="message-app"><span class="app-symbol">◉</span><span><b>WhatsApp</b><small id="demo-message-status">Waiting for a message</small></span><i>●</i></div><p id="demo-message-copy">A new message will appear here.</p><div class="message-code"><span id="demo-code" aria-label="Sample verification code">482 190</span><small>SAMPLE CODE</small></div></div>
+          <div class="message-card"><div class="message-app"><span class="app-symbol">◉</span><span><b>WhatsApp</b><small id="demo-message-status">Waiting for a message</small></span><i>●</i></div><p id="demo-message-copy">A new message will appear here.</p><div class="message-code" style="display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;width:100%!important;min-height:58px!important;padding:12px 14px!important;overflow:visible!important;position:relative!important;z-index:20!important;background:#eaf1fa!important;border:1px dashed #9bb5d0!important;border-radius:10px!important"><strong id="demo-code" aria-label="Sample verification code" style="display:inline-block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:30!important;min-width:116px!important;color:#153b63!important;font:800 25px/1.3 Manrope,sans-serif!important;letter-spacing:3px!important;white-space:nowrap!important">482 190</strong><small style="display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:30!important;flex-shrink:0!important;color:#637d99!important;font-size:9px!important;font-weight:900!important;white-space:nowrap!important">SAMPLE CODE</small></div></div>
           <div class="phone-bottom"><span class="active-dot"></span> Your messages, together</div>
         </div>
         <div class="float-tag tag-bottom"><span class="success-icon">✓</span><span><b id="demo-float-title">Ready when you are</b><small id="demo-float-copy">A live-style product preview</small></span></div>
@@ -91,15 +91,15 @@
       numberNode.textContent="";codeNode.textContent="482 190";
       statusNode.textContent="Selecting a number…";messageNode.textContent="Your number is being prepared.";timeNode.textContent="Connecting…";
       floatTitle.textContent="Number selected";floatCopy.textContent="Preparing your message inbox";
-      await typeText(numberNode,"+1 (202) 555-0148",125);
+      await typeText(numberNode,"+1 (202) 555-0148",190);
       statusNode.textContent="Number ready · Demo";timeNode.textContent="Waiting for SMS…";
       floatTitle.textContent="Number is ready";floatCopy.textContent="Now watching for an incoming SMS";
-      await new Promise(resolve=>setTimeout(resolve,reducedMotion?300:950));
+      await new Promise(resolve=>setTimeout(resolve,reducedMotion?500:1500));
       statusNode.textContent="Incoming message";timeNode.textContent="Just now";
       messageNode.textContent="A verification message has arrived.";
       floatTitle.textContent="Message received";floatCopy.textContent="Your code is now in the inbox";
       codeNode.textContent="482 190";
-      await new Promise(resolve=>setTimeout(resolve,reducedMotion?4500:6500));
+      await new Promise(resolve=>setTimeout(resolve,reducedMotion?6000:9000));
       runDemo();
     }
     runDemo();
