@@ -287,7 +287,7 @@ async function actionCancel(orderId:string,userId:string){
     return json({success:true,pending:true,error:"The provider has not confirmed cancellation. No refund has been processed."},202);
   }
   await refund(order.id,"cancelled","Customer cancelled the verification");
-  return json({success:true,refunded:true,order:await ownOrder(order.id,userId)});
+  return json({success:true,refunded:true,order:customerOrder(await ownOrder(order.id,userId))});
 }
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
@@ -298,7 +298,7 @@ Deno.serve(async(req:Request)=>{
       if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
       const {data,error}=await admin.from("sparkle_sms_orders").select("id,user_id,provider_key,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,created_at").order("created_at",{ascending:false}).limit(200);
       if(error)throw new Error("Unable to load SMS orders.");
-      return json({success:true,orders:(data||[]).map(customerOrder)});
+      return json({success:true,orders:data||[]});
     }
     if(action==="pricing-list"||action==="pricing-save"){
       if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
@@ -331,7 +331,7 @@ Deno.serve(async(req:Request)=>{
     if(action==="orders"){
       const {data,error}=await admin.from("sparkle_sms_orders").select("id,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,expires_at,code_received_at,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);
       if(error)throw new Error("Unable to load your number orders.");
-      return json({success:true,orders:data||[]});
+      return json({success:true,orders:(data||[]).map(customerOrder)});
     }
     return json({success:false,error:"Use quote, purchase, status, cancel or orders."},400);
   }catch(error){
