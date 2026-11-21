@@ -83,7 +83,7 @@ async function fxRate():Promise<number>{
   throw new Error("The current USD to NGN exchange rate is unavailable.");
 }
 async function pricingRule(provider:string,country:string,service:string){
-  const {data,error}=await admin.from("sparkle_sms_pricing_rules").select("country_iso,service_code,pricing_mode,markup_percent,fixed_price_kobo").eq("provider_key",provider).eq("is_active",true);
+  const {data,error}=await admin.from("BJVERIFY_sms_pricing_rules").select("country_iso,service_code,pricing_mode,markup_percent,fixed_price_kobo").eq("provider_key",provider).eq("is_active",true);
   if(error)throw new Error("Unable to load the current number pricing rules.");
   const rules=data||[];
   return rules.find((r:any)=>r.country_iso===country&&r.service_code===service)
@@ -154,21 +154,21 @@ function findSms(root:any):string{
 }
 function findState(data:any){return str(data?.status,data?.state,data?.data?.status,data?.order?.status,data?.verification?.status).toLowerCase();}
 async function ownOrder(orderId:string,userId:string){
-  const {data,error}=await admin.from("sparkle_sms_orders").select("*").eq("id",orderId).eq("user_id",userId).maybeSingle();
+  const {data,error}=await admin.from("BJVERIFY_sms_orders").select("*").eq("id",orderId).eq("user_id",userId).maybeSingle();
   if(error||!data)throw new Error("Order not found.");
   return data;
 }
 async function updateOrder(orderId:string,updates:Record<string,unknown>){
-  const {data,error}=await admin.from("sparkle_sms_orders").update({...updates,updated_at:new Date().toISOString()}).eq("id",orderId).select().single();
+  const {data,error}=await admin.from("BJVERIFY_sms_orders").update({...updates,updated_at:new Date().toISOString()}).eq("id",orderId).select().single();
   if(error||!data)throw new Error("The order update could not be saved. Please refresh or contact support.");
   return data;
 }
 async function saveMessage(order:any,code:string,sms:string,sender:string){
-  const {error}=await admin.from("sparkle_sms_messages").insert({order_id:order.id,user_id:order.user_id,otp_code:code||null,message_text:sms||null,sender:sender||null,received_at:new Date().toISOString()});
-  if(error&&error.code!=="23505")console.error("Sparkle message save failed:",error.message);
+  const {error}=await admin.from("BJVERIFY_sms_messages").insert({order_id:order.id,user_id:order.user_id,otp_code:code||null,message_text:sms||null,sender:sender||null,received_at:new Date().toISOString()});
+  if(error&&error.code!=="23505")console.error("BJVERIFY message save failed:",error.message);
 }
 async function refund(orderId:string,finalStatus:string,reason:string){
-  const {data,error}=await admin.rpc("sparkle_refund_sms_order",{p_order_id:orderId,p_final_status:finalStatus,p_reason:reason});
+  const {data,error}=await admin.rpc("BJVERIFY_refund_sms_order",{p_order_id:orderId,p_final_status:finalStatus,p_reason:reason});
   if(error)throw new Error("The provider order ended, but its wallet refund needs review.");
   return data;
 }
@@ -214,7 +214,7 @@ async function actionBuy(body:any,userId:string,req:Request){
  const q=await quote(provider,country,serviceCode,serviceName);if(!q.available)return json({success:false,error:"This service is currently out of stock.",available:false},409);
  if(provider==="fetchsms"){const wallet=await fetchRequest("/wallet/balance",{},true);if(num(wallet?.balance_cents,-1)<Math.ceil(q.providerUsd*100))return json({success:false,error:"This destination is temporarily unavailable. Please try again later."},503);}
  const idempotencyKey=str(req.headers.get("idempotency-key"),body.idempotency_key,body.idempotencyKey)||crypto.randomUUID();
- const reserved=await admin.rpc("sparkle_create_sms_order",{p_user_id:userId,p_provider_key:provider,p_idempotency_key:idempotencyKey,p_country_iso:country,p_country_name:countryName,p_service_code:serviceCode,p_service_name:serviceName,p_customer_price_kobo:q.customerPriceKobo,p_provider_cost_usd:q.providerUsd,p_exchange_rate:q.fx});
+ const reserved=await admin.rpc("BJVERIFY_create_sms_order",{p_user_id:userId,p_provider_key:provider,p_idempotency_key:idempotencyKey,p_country_iso:country,p_country_name:countryName,p_service_code:serviceCode,p_service_name:serviceName,p_customer_price_kobo:q.customerPriceKobo,p_provider_cost_usd:q.providerUsd,p_exchange_rate:q.fx});
  if(reserved.error){const message=reserved.error.message||"Unable to reserve this order.";if(message.includes("INSUFFICIENT_FUNDS"))return json({success:false,error:"Your wallet balance is too low. Please add funds."},402);return json({success:false,error:"Your order could not be reserved. Please try again."},400);}
  const reservation=Array.isArray(reserved.data)?reserved.data[0]:reserved.data,orderId=str(reservation?.order_id);if(!orderId)throw new Error("Order reservation did not return an order ID.");
  if(reservation?.already_exists){const existing=await ownOrder(orderId,userId);return json({success:true,pending:true,order:customerOrder(existing),message:"This request already exists. Open the existing order instead of purchasing again."},202);}
@@ -301,14 +301,14 @@ Deno.serve(async(req:Request)=>{
     const user=await getUser(req),body=await req.json().catch(()=>({})),action=str(body?.action).toLowerCase();
     if(action==="admin-orders"){
       if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
-      const {data,error}=await admin.from("sparkle_sms_orders").select("id,user_id,provider_key,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,created_at").order("created_at",{ascending:false}).limit(200);
+      const {data,error}=await admin.from("BJVERIFY_sms_orders").select("id,user_id,provider_key,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,created_at").order("created_at",{ascending:false}).limit(200);
       if(error)throw new Error("Unable to load SMS orders.");
       return json({success:true,orders:data||[]});
     }
     if(action==="pricing-list"||action==="pricing-save"){
       if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
       if(action==="pricing-list"){
-        const {data,error}=await admin.from("sparkle_sms_pricing_rules").select("*").order("provider_key").order("country_iso").order("service_code");
+        const {data,error}=await admin.from("BJVERIFY_sms_pricing_rules").select("*").order("provider_key").order("country_iso").order("service_code");
         if(error)throw new Error("Unable to load pricing rules.");
         return json({success:true,rules:data||[]});
       }
@@ -325,7 +325,7 @@ Deno.serve(async(req:Request)=>{
       if(pricing_mode==="fixed"&&fixed_price_kobo<=0)return json({success:false,error:"Enter a fixed customer price greater than zero."},400);
       if((provider_key==="virtualsms"&&country_iso==="US")||(provider_key!=="virtualsms"&&country_iso!=="US"&&country_iso!=="*"))return json({success:false,error:"That provider cannot be assigned to the selected country."},400);
       const payload={provider_key,country_iso,service_code,pricing_mode,markup_percent:pricing_mode==="markup"?markup_percent:0,fixed_price_kobo:pricing_mode==="fixed"?fixed_price_kobo:null,is_active:true,updated_at:new Date().toISOString()};
-      const {data,error}=await admin.from("sparkle_sms_pricing_rules").upsert(payload,{onConflict:"provider_key,country_iso,service_code"}).select().single();
+      const {data,error}=await admin.from("BJVERIFY_sms_pricing_rules").upsert(payload,{onConflict:"provider_key,country_iso,service_code"}).select().single();
       if(error)throw new Error("The pricing rule could not be saved.");
       return json({success:true,rule:data});
     }
@@ -334,14 +334,14 @@ Deno.serve(async(req:Request)=>{
     if(action==="status"||action==="check")return await actionStatus(str(body?.order_id,body?.orderId,body?.id),user.id);
     if(action==="cancel")return await actionCancel(str(body?.order_id,body?.orderId,body?.id),user.id);
     if(action==="orders"){
-      const {data,error}=await admin.from("sparkle_sms_orders").select("id,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,expires_at,code_received_at,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);
+      const {data,error}=await admin.from("BJVERIFY_sms_orders").select("id,country_iso,country_name,service_name,provider_order_id,phone_number,customer_price_kobo,status,otp_code,sms_text,expires_at,code_received_at,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);
       if(error)throw new Error("Unable to load your number orders.");
       return json({success:true,orders:(data||[]).map(customerOrder)});
     }
     return json({success:false,error:"Use quote, purchase, status, cancel or orders."},400);
   }catch(error){
     const message=error instanceof Error?error.message:"Unexpected server error.";
-    console.error("Sparkle SMS order function:",message);
+    console.error("BJVERIFY SMS order function:",message);
     const safeMessage=/virtualsms|fetchsms|textverified|provider|api key|credential|http \\d{3}|service code|country id/i.test(message)?"We could not complete that request. Please try again.":message;
     return json({success:false,error:safeMessage},400);
   }
