@@ -56,8 +56,59 @@ if (window.location.pathname.endsWith("/welcome.html")) {
   const continueButton = document.querySelector("[data-welcome-continue]");
   const continueToDashboard = () => go(destination);
   continueButton?.addEventListener("click", continueToDashboard);
-  if (status) status.textContent = "Taking you to your dashboard…";
-  window.setTimeout(continueToDashboard, 2600);
+  if (status) status.textContent = "Preparing your secure dashboard…";
+
+  // Pull real country/service pairs from the live catalogue for the rotating welcome display.
+  const activity = document.querySelector("[data-welcome-activity]");
+  const showActivity = (flag, service, countryName) => {
+    if (!activity) return;
+    activity.classList.add("is-changing");
+    window.setTimeout(() => {
+      const icon = document.createElement("span");
+      icon.className = "welcome-activity-icon";
+      icon.textContent = flag || "🌍";
+      const label = document.createElement("span");
+      label.textContent = (countryName || "Available destination") + " · " + service;
+      activity.replaceChildren(icon, label);
+      activity.classList.remove("is-changing");
+    }, 350);
+  };
+  const fallbackActivities = [
+    ["📱", "Virtual numbers"],
+    ["💬", "SMS inbox"],
+    ["🌍", "Country destinations"],
+    ["🔐", "Secure verification"]
+  ];
+  let activities = [];
+  try {
+    const { data: countryData, error: countryError } = await supabase.functions.invoke("BJVERIFY-sms-catalog", { body: { action: "countries" } });
+    if (!countryError && Array.isArray(countryData?.countries)) {
+      const countryList = countryData.countries.slice(0, 4);
+      const serviceLists = await Promise.all(countryList.map(async (country) => {
+        const mode = country.code === "US" ? "usa" : "all";
+        const { data, error } = await supabase.functions.invoke("BJVERIFY-sms-catalog", { body: { action: "services", country: country.code, mode } });
+        if (error) return [];
+        return (data?.services || []).filter(service => service.available !== false).slice(0, 2).map(service => ({
+          flag: country.flag || "🌍", country: country.name, service: service.name
+        }));
+      }));
+      activities = serviceLists.flat();
+    }
+  } catch (error) {
+    console.warn("Welcome catalogue preview unavailable:", error);
+  }
+  if (activity) {
+    const items = activities.length ? activities : fallbackActivities.map(([icon, service]) => ({ flag: icon, country: "", service }));
+    let index = 0;
+    const rotate = () => {
+      const item = items[index % items.length];
+      showActivity(item.flag, item.service, item.country);
+      index += 1;
+    };
+    rotate();
+    if (items.length > 1) window.setInterval(rotate, 1450);
+  }
+  window.setTimeout(continueToDashboard, 4200);
 }
 
 // Mark the active customer section without intercepting native navigation.
