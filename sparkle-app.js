@@ -137,3 +137,35 @@ async function loadSmsOrders(){
 }
 if(results)void loadCountries();
 if(document.querySelector("#sms-orders"))void loadSmsOrders();
+
+const pricingForm=document.querySelector("#pricing-form"),pricingList=document.querySelector("#pricing-rules"),pricingMessage=document.querySelector("#pricing-message"),pricingMode=document.querySelector("#pricing-mode");
+function showPricingMessage(message,kind="info"){if(!pricingMessage)return;pricingMessage.hidden=false;pricingMessage.textContent=message;pricingMessage.dataset.kind=kind;}
+function syncPricingMode(){const fixed=pricingMode?.value==="fixed";const markup=document.querySelector("#pricing-markup"),price=document.querySelector("#pricing-fixed");if(markup)markup.disabled=fixed;if(price)price.disabled=!fixed;}
+pricingMode?.addEventListener("change",syncPricingMode);syncPricingMode();
+async function loadPricingRules(){
+ if(!pricingList)return;
+ note(pricingList,"Loading pricing rules…");
+ try{
+  const data=await invokeOrder({action:"pricing-list"});const rules=data.rules||[];pricingList.replaceChildren();
+  if(!rules.length){note(pricingList,"No pricing rules are configured.");return;}
+  for(const rule of rules){
+   const row=document.createElement("article");row.className="app-list-row";
+   const info=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small");
+   title.textContent=rule.provider_key+" · "+rule.country_iso+" · "+rule.service_code;
+   meta.textContent=rule.pricing_mode==="fixed"?"Fixed price: "+money(rule.fixed_price_kobo):"Markup: "+Number(rule.markup_percent).toLocaleString("en-NG")+"%";
+   info.append(title,meta);
+   const edit=document.createElement("button");edit.type="button";edit.className="app-button secondary";edit.textContent="Edit";
+   edit.addEventListener("click",()=>{document.querySelector("#pricing-provider").value=rule.provider_key;document.querySelector("#pricing-country").value=rule.country_iso;document.querySelector("#pricing-service").value=rule.service_code;document.querySelector("#pricing-mode").value=rule.pricing_mode;document.querySelector("#pricing-markup").value=rule.markup_percent;document.querySelector("#pricing-fixed").value=rule.fixed_price_kobo?Number(rule.fixed_price_kobo)/100:"";syncPricingMode();pricingForm.scrollIntoView({behavior:"smooth",block:"start"});});
+   row.append(info,edit);pricingList.append(row);
+  }
+ }catch(error){note(pricingList,error.message||"Pricing rules could not be loaded.");}
+}
+pricingForm?.addEventListener("submit",async event=>{
+ event.preventDefault();const button=document.querySelector("#pricing-save");button.disabled=true;button.textContent="Saving…";
+ try{
+  await invokeOrder({action:"pricing-save",provider_key:document.querySelector("#pricing-provider").value,country_iso:document.querySelector("#pricing-country").value.trim(),service_code:document.querySelector("#pricing-service").value.trim()||"*",pricing_mode:document.querySelector("#pricing-mode").value,markup_percent:Number(document.querySelector("#pricing-markup").value),fixed_price_ngn:Number(document.querySelector("#pricing-fixed").value)});
+  showPricingMessage("Pricing rule saved.", "success");await loadPricingRules();
+ }catch(error){showPricingMessage(error.message||"Pricing rule could not be saved.","error");}
+ finally{button.disabled=false;button.textContent="Save pricing rule";}
+});
+if(pricingList)void loadPricingRules();
