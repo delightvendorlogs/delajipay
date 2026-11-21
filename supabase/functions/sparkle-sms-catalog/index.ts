@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SERVICE_REF_SECRET = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const VIRTUALSMS_API_KEY = Deno.env.get("VIRTUALSMS_API_KEY") ?? "";
 const FETCHSMS_API_KEY = Deno.env.get("FETCHSMS_API_KEY") ?? "";
 const TEXTVERIFIED_API_USERNAME = Deno.env.get("TEXTVERIFIED_API_USERNAME") ?? "";
@@ -112,42 +113,37 @@ async function textVerifiedRequest(path: string) {
   if (!response.ok) throw new Error(str(data?.message, data?.error, data?.detail, "TextVerified catalogue request failed."));
   return data;
 }
+function base64Url(bytes: Uint8Array) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+async function serviceRef(provider: string, country: string, code: string, name: string) {
+  if (!SERVICE_REF_SECRET) throw new Error("Service catalogue is unavailable.");
+  const payload = base64Url(new TextEncoder().encode(JSON.stringify({ provider, country, code, name, issued: Date.now() })));
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(SERVICE_REF_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  return payload + "." + base64Url(new Uint8Array(signature));
+}
 async function countries() {
-  const warnings: string[] = [];
-  let international: any[] = [];
-  try {
-    const result = await virtualSmsRequest("/customer/countries");
-    international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US" && !/united states|\busa\b/i.test(x.name)));
-  } catch (error) {
-    warnings.push("International catalogue temporarily unavailable.");
-  }
-  const usa = { code: "US", name: "United States", flag: "🇺🇸", available: true, aliases: ["USA", "US"], providers: ["fetchsms", "textverified"] };
-  const deduped = new Map<string, any>();
-  for (const country of international) deduped.set(country.code, { ...country, providers: ["virtualsms"] });
+  const warnings: string[] = []; let international: any[] = [];
+  try { const result = await virtualSmsRequest("/customer/countries"); international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US" && !/united states|\busa\b/i.test(x.name))); } catch { warnings.push("Country list temporarily unavailable."); }
+  const usa = { code: "US", name: "United States", flag: "🇺🇸", available: true, aliases: ["USA", "US"] };
+  const deduped = new Map<string, any>(); for (const country of international) deduped.set(country.code, country);
   return { success: true, countries: [usa, ...Array.from(deduped.values()).sort((a,b)=>a.name.localeCompare(b.name))], warnings };
 }
 async function services(country: string, mode: string) {
-  const code = country.trim().toUpperCase();
+  const code = country.trim().toUpperCase(), catalogue = mode.trim().toLowerCase();
   if (!/^[A-Z]{2}$/.test(code)) throw new Error("Choose a valid country.");
-  if (code === "US") {
-    if (mode === "all") {
-      const data = await fetchSmsRequest("/services");
-      return { success:true,country:"US",providers:[{
-        provider_key:"fetchsms",country:"US",
-        services:rows(data).filter((x:any)=>Number(x?.id)!==1).map(normalizeService).filter(Boolean)
-      }]};
-    }
-    const data = await textVerifiedRequest("/services?numberType=mobile&reservationType=verification");
-    return { success:true,country:"US",providers:[{
-      provider_key:"textverified",country:"US",
-      services:rows(data).map(normalizeService).filter(Boolean)
-    }]};
-  }
-  const data = await virtualSmsRequest("/customer/services?country=" + encodeURIComponent(code));
-  return { success:true,country:code,providers:[{
-    provider_key:"virtualsms",country:code,
-    services:rows(data).map(normalizeService).filter(Boolean)
-  }]};
+  let provider: string, data: any;
+  if (catalogue === "usa" && code === "US") { provider = "textverified"; data = await textVerifiedRequest("/services?numberType=mobile&reservationType=verification"); }
+  else if (catalogue === "all" && code === "US") { provider = "fetchsms"; data = await fetchSmsRequest("/services"); }
+  else if (catalogue === "all" && code !== "US") { provider = "virtualsms"; data = await virtualSmsRequest("/customer/services?country=" + encodeURIComponent(code)); }
+  else throw new Error("Choose a valid number destination.");
+  const normalized = rows(data).map(normalizeService).filter(Boolean);
+  const available = provider === "fetchsms" ? normalized.filter((item:any)=>item.available) : normalized;
+  const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,available:item.available,available_count:item.available_count})));
+  return { success:true, services:publicServices };
 }
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -157,10 +153,11 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(()=>({}));
     const action = str(body?.action).toLowerCase();
     if (action === "countries") return json(await countries());
-    if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase() || "usa"));
+    if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase()));
     return json({ success:false,error:"Use the countries or services action." },400);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected server error.";
+    const raw = error instanceof Error ? error.message : "Unexpected server error.";
+    const message = /virtualsms|fetchsms|textverified|provider|api key|credential|http \\d{3}/i.test(raw) ? "The catalogue is temporarily unavailable. Please try again." : raw;
     return json({ success:false,error:message },400);
   }
 });
