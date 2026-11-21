@@ -74,3 +74,33 @@ body:not(.sparkle-site) a{color:#76dff4}
 .service-actions{display:grid;gap:8px;justify-items:stretch;min-width:130px}
 .service-price-result{font-size:12px;font-weight:800;color:#9fe8f7;white-space:nowrap}
 @media(max-width:560px){.service-actions{min-width:105px}.app-list-row{gap:10px}.service-price-result{white-space:normal}}
+
+/* Dashboard activity: aligned, readable order and wallet timelines */
+.activity-panel{padding:22px}
+.activity-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:15px}
+.activity-heading h2{margin:0 0 5px}
+.activity-heading .app-panel-intro{margin:0}
+.activity-view-link{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;color:#79dff4;font-size:10px;font-weight:800}
+.activity-feed{display:grid;gap:10px}
+.activity-order-card{display:block;min-width:0;padding:15px 16px;border:1px solid #2b4665;border-radius:13px;background:linear-gradient(120deg,#122a47,#10213a);transition:border-color .18s,transform .18s}
+.activity-order-card:hover{border-color:#58b9d7;transform:translateY(-1px)}
+.activity-order-top,.activity-order-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.activity-order-identity{display:grid;gap:4px;min-width:0}
+.activity-order-identity strong{font-size:13px;overflow-wrap:anywhere}
+.activity-order-identity span,.activity-order-date{font-size:10px;color:#91a8c3}
+.activity-status{display:inline-flex;align-items:center;justify-content:center;max-width:150px;padding:5px 9px;border-radius:20px;background:#233b56;color:#c5d9eb;font-size:9px;font-weight:800;white-space:nowrap}
+.activity-status.status-received,.activity-status.status-completed{background:#123f3b;color:#8af0ce}
+.activity-status.status-failed,.activity-status.status-expired,.activity-status.status-cancelled,.activity-status.status-refunded{background:#482c35;color:#ffbdc6}
+.activity-status.status-waiting,.activity-status.status-unknown,.activity-status.status-creating{background:#453a24;color:#f5d68c}
+.activity-order-bottom{justify-content:flex-start;flex-wrap:wrap;margin-top:13px;padding-top:11px;border-top:1px solid #29415f}
+.activity-order-number{font-size:11px;font-weight:750;color:#e6f4ff;overflow-wrap:anywhere}
+.activity-order-date{margin-left:auto}
+.activity-order-price{font-size:11px;color:#9de8f7;white-space:nowrap}
+.sparkle-app .recent-activity{display:grid;gap:9px}
+.sparkle-app .recent-activity-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:13px 15px;border:1px solid #2b4665;border-radius:12px;background:#10213b;color:#eaf3ff}
+.sparkle-app .recent-activity-row strong{font-size:12px;color:#eaf3ff}
+.sparkle-app .recent-activity-row small{font-size:10px;color:#91a8c3}
+.sparkle-app .recent-activity-row b{grid-column:2;grid-row:1/3;font-size:12px;white-space:nowrap}
+.sparkle-app .recent-activity-row .amount-in{color:#8af0ce}
+.sparkle-app .recent-activity-row .amount-out{color:#ffbdc6}
+@media(max-width:560px){.activity-panel{padding:16px}.activity-heading{align-items:center}.activity-heading .app-panel-intro{max-width:230px}.activity-order-card{padding:13px}.activity-order-top{align-items:flex-start}.activity-status{max-width:118px;white-space:normal;text-align:center}.activity-order-date{margin-left:0;width:100%;order:3}.activity-order-bottom{gap:7px 12px}}
