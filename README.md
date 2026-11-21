@@ -1,6 +1,6 @@
-# Sparkle SMS
+# BJVERIFY SMS
 
-Sparkle SMS is a virtual-number and incoming SMS platform. The former DelajiPay bill-payment product has been retired from this repository.
+BJVERIFY SMS is a virtual-number and incoming SMS platform. The former DelajiPay bill-payment product has been retired from this repository.
 
 ## Product scope
 
@@ -19,18 +19,18 @@ Sparkle SMS is a virtual-number and incoming SMS platform. The former DelajiPay 
 
 ## Current implementation status
 
-- Public Sparkle SMS landing page and responsive brand identity.
+- Public BJVERIFY SMS landing page and responsive brand identity.
 - Rebranded login, signup and password recovery.
-- Sparkle customer dashboard, number discovery interface and SMS inbox shell.
+- BJVERIFY customer dashboard, number discovery interface and SMS inbox shell.
 - Existing Supabase Auth, wallet ledger and Paystack funding foundation retained.
 - Legacy bill-payment catalogue entries disabled and old retired purchase endpoint retired.
-- Live country/service catalogues, price quotes, one-off number purchases, SMS status checks, inbox records and idempotent wallet refunds are implemented in Sparkle Supabase. Provider API credentials still need to be added to the Sparkle project before live supplier requests can succeed.
+- Live country/service catalogues, price quotes, one-off number purchases, SMS status checks, inbox records and idempotent wallet refunds are implemented in BJVERIFY Supabase. Provider API credentials still need to be added to the BJVERIFY project before live supplier requests can succeed.
 
 ## Provider credentials
 
 The previous Delight Vendor Logs Supabase project contains read-only reference implementations for VirtualSMS, Fetch SMS and TextVerified. Those implementations have not been modified.
 
-Sparkle SMS will use its own provider credentials stored as Supabase Edge Function secrets:
+BJVERIFY SMS will use its own provider credentials stored as Supabase Edge Function secrets:
 
 - `VIRTUALSMS_API_KEY`
 - `FETCHSMS_API_KEY`
