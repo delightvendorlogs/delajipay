@@ -214,3 +214,23 @@ async function loadAdminSmsOrders(){
  }catch(error){note(box,error.message||"SMS order records could not be loaded.");}
 }
 if(document.querySelector("#admin-sms-orders"))void loadAdminSmsOrders();
+
+async function loadDashboardSmsOrders(){
+ const box=document.querySelector("#dashboard-sms-orders");if(!box)return;
+ note(box,"Loading your latest number orders…");
+ try{
+  const data=await invokeOrder({action:"orders"}),orders=(data.orders||[]).slice(0,3);box.replaceChildren();
+  if(!orders.length){note(box,"No number orders yet. Explore the catalogue to get started.");return;}
+  box.className="app-list";
+  for(const order of orders){
+   const row=document.createElement("article");row.className="app-list-row";
+   const info=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small"),status=document.createElement("span");
+   title.textContent=order.service_name+" · "+order.country_name;
+   meta.textContent=order.phone_number||"Number confirmation pending";
+   status.className="provider-region";status.textContent=String(order.status||"pending").toUpperCase();
+   info.append(title,meta);row.append(info,status);box.append(row);
+  }
+  const link=document.createElement("a");link.className="app-button secondary";link.href="inbox.html";link.textContent="Open SMS inbox";link.style.marginTop="10px";box.append(link);
+ }catch(error){note(box,"Your number activity could not be loaded. Open the inbox to try again.");}
+}
+if(document.querySelector("#dashboard-sms-orders"))void loadDashboardSmsOrders();
