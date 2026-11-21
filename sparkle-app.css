@@ -36,3 +36,8 @@ body:not(.sparkle-site) a{color:#76dff4}
 .app-welcome h1{font-size:clamp(30px,4vw,42px)}
 @media(max-width:760px){.app-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:420px){.app-grid{grid-template-columns:1fr}.app-brand-word{font-size:18px}}
+
+.brand .brand-mark{width:39px;height:39px;border:1px solid #75d7f2;border-radius:13px;background:linear-gradient(145deg,#193e67,#10213d);color:#8ee9fb;box-shadow:0 8px 24px #168acb38}
+.brand .brand-mark svg{width:25px;height:25px;filter:drop-shadow(0 0 7px #58cfff70)}
+.brand .brand-word{font-size:20px;letter-spacing:-.8px;color:#f0f7ff}
+.brand .brand-word .brand-light{font-size:.76em;letter-spacing:1.5px;margin-left:3px;color:#76e2f5}
