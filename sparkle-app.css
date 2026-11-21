@@ -19,3 +19,5 @@ body:not(.sparkle-site) input,body:not(.sparkle-site) select,body:not(.sparkle-s
 body:not(.sparkle-site) .btn,body:not(.sparkle-site) .button-primary{background:linear-gradient(110deg,#5b9cf5,#31c9e4)!important;color:#061327!important;border:0!important}
 body:not(.sparkle-site) .app-footer,body:not(.sparkle-site) .site-footer{background:#091326!important;border-top:1px solid #253b58!important;color:#8298b3!important}
 body:not(.sparkle-site) a{color:#76dff4}
+
+.message-code{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px dashed #456989;background:#0d1d34;border-radius:10px;padding:12px 14px;color:#9fe9f7;font:800 19px Manrope;letter-spacing:1.4px}
