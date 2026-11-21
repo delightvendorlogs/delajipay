@@ -307,6 +307,30 @@ Deno.serve(async(req:Request)=>{
   if(req.method!=="POST")return json({success:false,error:"Method not allowed."},405);
   try{
     const user=await getUser(req),body=await req.json().catch(()=>({})),action=str(body?.action).toLowerCase();
+    if(action==="pricing-list"||action==="pricing-save"){
+      if(user.app_metadata?.role!=="admin")return json({success:false,error:"Administrator access is required."},403);
+      if(action==="pricing-list"){
+        const {data,error}=await admin.from("sparkle_sms_pricing_rules").select("*").order("provider_key").order("country_iso").order("service_code");
+        if(error)throw new Error("Unable to load pricing rules.");
+        return json({success:true,rules:data||[]});
+      }
+      const provider_key=str(body?.provider_key).toLowerCase();
+      const country_iso=str(body?.country_iso).toUpperCase();
+      const service_code=str(body?.service_code)||"*";
+      const pricing_mode=str(body?.pricing_mode).toLowerCase();
+      const markup_percent=num(body?.markup_percent,-1);
+      const fixed_price_kobo=Math.round(num(body?.fixed_price_ngn,0)*100);
+      if(!["fetchsms","textverified","virtualsms"].includes(provider_key))return json({success:false,error:"Choose a valid provider."},400);
+      if(!(country_iso==="*"||/^[A-Z0-9_-]{2,16}$/.test(country_iso)))return json({success:false,error:"Enter a valid country code or * for all countries."},400);
+      if(!["markup","fixed"].includes(pricing_mode))return json({success:false,error:"Choose a valid pricing mode."},400);
+      if(pricing_mode==="markup"&&(!Number.isFinite(markup_percent)||markup_percent<0||markup_percent>1000))return json({success:false,error:"Markup must be between 0 and 1000 percent."},400);
+      if(pricing_mode==="fixed"&&fixed_price_kobo<=0)return json({success:false,error:"Enter a fixed customer price greater than zero."},400);
+      if((provider_key==="virtualsms"&&country_iso==="US")||(provider_key!=="virtualsms"&&country_iso!=="US"&&country_iso!=="*"))return json({success:false,error:"That provider cannot be assigned to the selected country."},400);
+      const payload={provider_key,country_iso,service_code,pricing_mode,markup_percent:pricing_mode==="markup"?markup_percent:0,fixed_price_kobo:pricing_mode==="fixed"?fixed_price_kobo:null,is_active:true,updated_at:new Date().toISOString()};
+      const {data,error}=await admin.from("sparkle_sms_pricing_rules").upsert(payload,{onConflict:"provider_key,country_iso,service_code"}).select().single();
+      if(error)throw new Error("The pricing rule could not be saved.");
+      return json({success:true,rule:data});
+    }
     if(action==="quote")return await actionQuote(body);
     if(action==="purchase"||action==="buy")return await actionBuy(body,user.id,req);
     if(action==="status"||action==="check")return await actionStatus(str(body?.order_id,body?.orderId,body?.id),user.id);
