@@ -915,3 +915,7 @@ grant execute on function public.sparkle_refund_sms_order(uuid,text,text) to ser
 insert into public.sparkle_sms_pricing_rules(provider_key,country_iso,service_code,pricing_mode,markup_percent,is_active)
 values ('fetchsms','US','*','markup',100,true),('textverified','US','*','markup',100,true),('virtualsms','*','*','markup',100,true)
 on conflict (provider_key,country_iso,service_code) do nothing;
+
+create index if not exists sparkle_sms_orders_debit_ledger_idx on public.sparkle_sms_orders(debit_ledger_id);
+drop policy if exists "No client access to Sparkle SMS pricing rules" on public.sparkle_sms_pricing_rules;
+create policy "No client access to Sparkle SMS pricing rules" on public.sparkle_sms_pricing_rules for all to anon, authenticated using (false) with check (false);
