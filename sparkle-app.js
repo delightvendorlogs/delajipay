@@ -4,121 +4,76 @@ const menu=document.querySelector(".app-mobile-menu"),nav=document.querySelector
 menu?.addEventListener("click",()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open));menu.textContent=open?"×":"☰";});
 nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{nav.classList.remove("open");menu?.setAttribute("aria-expanded","false");if(menu)menu.textContent="☰";}));
 const results=document.querySelector("#country-results"),providersBox=document.querySelector("#provider-options"),heading=document.querySelector("#provider-heading"),description=document.querySelector("#provider-description");
-let countries=[],providerResults=[],selectedCountry="",selectedCountryName="",activeCatalog="usa";
+let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="United States",activeCatalog="usa",catalogRequest=0;
 const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
-function note(parent,message){const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
+function note(parent,message){if(!parent)return;const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
 function setCatalog(mode){
  activeCatalog=mode==="all"?"all":"usa";
  document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===activeCatalog)));
- selectedCountry="";selectedCountryName="";providerResults=[];
- if(heading)heading.textContent="Choose a country";
- if(description)description.textContent="Available services will appear here.";
- if(providersBox)note(providersBox,"Select a country to see available services.");
- const search=document.querySelector("#country-search");if(search)search.value="";
- renderCountries();
+ const picker=document.querySelector("#all-country-picker"),usaIntro=document.querySelector("#usa-intro");
+ if(picker)picker.hidden=activeCatalog!=="all";if(usaIntro)usaIntro.hidden=activeCatalog!=="usa";
+ const search=document.querySelector("#service-search");if(search)search.value="";
+ if(activeCatalog==="usa"){
+  selectedCountry="US";selectedCountryName="United States";
+  if(heading)heading.textContent="USA services";if(description)description.textContent="Choose a service to see its customer price.";
+  void loadServices("US","United States","usa");
+ }else{
+  selectedCountry="";selectedCountryName="";
+  if(heading)heading.textContent="Choose a country first";if(description)description.textContent="Select a country to browse its available services.";
+  note(providersBox,"Select a country to see available services.");renderCountries();
+ }
 }
 function renderCountries(){
- if(!results)return;
- const q=(document.querySelector("#country-search")?.value||"").trim().toLowerCase();
- const source=activeCatalog==="usa"?countries.filter(c=>c.code==="US"):countries;
- const filtered=source.filter(c=>(c.name+" "+c.code+" "+(c.aliases||[]).join(" ")).toLowerCase().includes(q));
- results.replaceChildren();
- if(!filtered.length){note(results,"No matching countries. Try another search.");return;}
- for(const country of filtered){
-  const row=document.createElement("div");row.className="app-country-result";
-  const left=document.createElement("div"),name=document.createElement("span"),meta=document.createElement("small"),button=document.createElement("button");
-  name.textContent=(country.flag?country.flag+" ":"")+country.name;
-  meta.textContent=country.code==="US"?(activeCatalog==="usa"?"USA catalogue":"United States destination"):"Available destination";
-  button.type="button";button.textContent="Choose";button.addEventListener("click",()=>loadServices(country.code,country.name,activeCatalog));
-  left.append(name,meta);row.append(left,button);results.append(row);
- }
+ if(!results)return;const q=(document.querySelector("#country-search")?.value||"").trim().toLowerCase();
+ const filtered=countries.filter(c=>(String(c.name||"")+" "+String(c.code||"")+" "+(c.aliases||[]).join(" ")).toLowerCase().includes(q));
+ results.replaceChildren();if(!filtered.length){note(results,"No matching countries. Try another search.");return;}
+ for(const country of filtered){const row=document.createElement("button");row.type="button";row.className="app-country-result country-choice";const name=document.createElement("strong"),meta=document.createElement("small");name.textContent=(country.flag?country.flag+" ":"")+country.name;meta.textContent=country.code==="US"?"United States":"Available destination";row.append(name,meta);row.addEventListener("click",()=>loadServices(country.code,country.name,"all"));results.append(row);}
 }
-async function invokeOrder(body,headers={}){
- const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});
- if(error)throw error;
- if(data?.success===false)throw new Error(data.error||"The request could not be completed.");
- return data;
-}
+async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error)throw error;if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
 function renderServices(data){
- if(!providersBox)return;
- providerResults=data.providers||[];
- providersBox.replaceChildren();
- const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
- let totalServices=0;
- for(const provider of providerResults){
-  const card=document.createElement("article");card.className="provider-card";
-  const h=document.createElement("h3");h.textContent="Available services";
-  const p=document.createElement("p");p.textContent=provider.error?"Services are temporarily unavailable.":((provider.services||[]).length+" services available to explore");
-  card.append(h,p);
-  if(provider.error){const e=document.createElement("p");e.textContent="This provider catalogue is temporarily unavailable.";card.append(e);}
-  else{
-   const list=document.createElement("div");list.className="app-list";
-   const services=(provider.services||[]).filter(s=>!q||String(s.name).toLowerCase().includes(q)||String(s.code).toLowerCase().includes(q));
-   totalServices+=services.length;
-   for(const service of services.slice(0,80)){
-    const item=document.createElement("div");item.className="app-list-row";
-    const detail=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small"),actions=document.createElement("div");
-    title.textContent=service.name;
-    meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" available":"Check live availability";
-    detail.append(title,meta);actions.style.display="grid";actions.style.gap="7px";
-    const quoteButton=document.createElement("button");quoteButton.type="button";quoteButton.className="app-button secondary";quoteButton.textContent="Check price";
-    const quoteResult=document.createElement("div");quoteResult.style.fontSize="10px";quoteResult.style.color="#9bdff1";
-    quoteButton.disabled=service.available===false;
-    quoteButton.addEventListener("click",async()=>{
-      quoteButton.disabled=true;quoteButton.textContent="Checking…";quoteResult.textContent="";
-      try{
-       const quote=await invokeOrder({action:"quote",provider_key:provider.provider_key,country_iso:selectedCountry,service_code:service.code,service_name:service.name});
-       quoteResult.textContent="Price: "+money(quote.customer_price_kobo);
-       const buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.textContent="Purchase number";
-       const purchaseIdempotencyKey=crypto.randomUUID();
-       buy.addEventListener("click",async()=>{
-        if(!confirm("Purchase a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?"))return;
-        buy.disabled=true;buy.textContent="Submitting…";
-        try{
-         const result=await invokeOrder({action:"purchase",provider_key:provider.provider_key,country_iso:selectedCountry,country_name:selectedCountryName,service_code:service.code,service_name:service.name},{"Idempotency-Key":purchaseIdempotencyKey});
-         quoteResult.textContent=result.order?.phone_number?"Number: "+result.order.phone_number+" · Order saved.":"Your order is being confirmed. Do not submit another purchase.";
-         buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";
-        }catch(error){quoteResult.textContent=error.message||"Purchase could not be completed.";buy.disabled=false;buy.textContent="Try again";}
-       });
-       actions.append(buy);
-      }catch(error){quoteResult.textContent=error.message||"Price could not be retrieved.";}
-      finally{quoteButton.textContent="Refresh price";quoteButton.disabled=false;}
-    });
-    actions.append(quoteButton,quoteResult);item.append(detail,actions);list.append(item);
-   }
-   if(!services.length){const empty=document.createElement("p");empty.textContent=q?"No services match this search.":"No services were returned by this provider.";card.append(empty);}else card.append(list);
-  }
-  providersBox.append(card);
+ if(!providersBox)return;serviceResults=data.services||[];providersBox.replaceChildren();
+ const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase(),services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
+ if(!services.length){note(providersBox,q?"No services match this search.":"No services are currently available for this destination.");return;}
+ const list=document.createElement("div");list.className="app-list";
+ for(const service of services.slice(0,100)){
+  const item=document.createElement("article");item.className="app-list-row";const detail=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small"),actions=document.createElement("div");
+  title.textContent=service.name;meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" available":"Availability checked at purchase";detail.append(title,meta);actions.className="service-actions";
+  const quoteButton=document.createElement("button");quoteButton.type="button";quoteButton.className="app-button secondary";quoteButton.textContent="View price";quoteButton.disabled=service.available===false;const result=document.createElement("div");result.className="service-price-result";
+  quoteButton.addEventListener("click",async()=>{
+   quoteButton.disabled=true;quoteButton.textContent="Checking…";result.textContent="";
+   try{
+    const quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref});result.textContent="Price "+money(quote.customer_price_kobo);
+    const buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.textContent="Get this number";const idempotencyKey=crypto.randomUUID();
+    buy.addEventListener("click",async()=>{
+     if(!confirm("Get a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?"))return;
+     buy.disabled=true;buy.textContent="Processing…";
+     try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref},{"Idempotency-Key":idempotencyKey});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
+     catch(error){result.textContent=error.message||"The request could not be completed.";buy.disabled=false;buy.textContent="Try again";}
+    });actions.append(buy);
+   }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
+   finally{quoteButton.textContent="Refresh price";quoteButton.disabled=false;}
+  });
+  actions.append(quoteButton,result);item.append(detail,actions);list.append(item);
  }
- if(totalServices===0&&!providerResults.some(p=>p.error)){const footer=document.createElement("div");footer.className="app-note";footer.textContent="No services match the current search. Try another service name.";providersBox.append(footer);}
+ providersBox.append(list);
 }
 async function loadCountries(){
- if(!results)return;
- note(results,"Loading live country catalogue…");
- try{
-  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});
-  if(error)throw error;
-  countries=data?.countries||[];
-  renderCountries();
- }catch(error){note(results,"The country catalogue could not load. Provider API credentials may still need to be added.");console.warn("Sparkle country catalogue:",error);}
+ if(!results)return;note(results,"Loading available countries…");
+ try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});if(error)throw error;countries=data?.countries||[];renderCountries();}
+ catch(error){note(results,"We couldn't load the country list. Please try again shortly.");console.warn("Country catalogue:",error);}
 }
 async function loadServices(country,name,mode=activeCatalog){
- if(!providersBox)return;
- selectedCountry=country;selectedCountryName=name||country;
- heading.textContent=selectedCountryName+" services";
- description.textContent="Choose a service and check its current price.";
+ if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;
+ if(heading)heading.textContent=mode==="usa"?"USA services":selectedCountryName+" services";if(description)description.textContent="Choose a service to see its customer price.";
  note(providersBox,"Loading available services…");
- try{
-  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode}});
-  if(error)throw error;
-  renderServices(data||{providers:[]});
- }catch(error){note(providersBox,"Services could not be loaded right now. Please try again.");console.warn("Sparkle services:",error);}
+ try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
+ catch(error){if(request===catalogRequest)note(providersBox,"Services are temporarily unavailable. Please try again.");console.warn("Service catalogue:",error);}
 }
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
 document.querySelector("#country-search")?.addEventListener("input",renderCountries);
-document.querySelector("#service-search")?.addEventListener("input",()=>{if(selectedCountry&&providerResults.length)renderServices({providers:providerResults});});
-const dashboardSearch=document.querySelector("#dashboard-number-search");
-dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?q="+encodeURIComponent(dashboardSearch.value);});
+document.querySelector("#service-search")?.addEventListener("input",()=>renderServices({services:serviceResults}));
+const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
+if(results){void loadCountries().then(()=>{const params=new URLSearchParams(location.search);if(params.get("tab")==="all"){setCatalog("all");const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();}}else setCatalog("usa");});}
 let inboxPollTimer=null,inboxPolling=false;
 async function loadSmsOrders(){
  const box=document.querySelector("#sms-orders");if(!box)return;
@@ -127,7 +82,7 @@ async function loadSmsOrders(){
   const data=await invokeOrder({action:"orders"});const orders=data.orders||[];box.replaceChildren();
   if(!orders.length){note(box,"No number purchases yet. Choose a supported country to get started.");return;}
   box.className="app-list";
-  const pendingOrders=orders.filter(order=>["waiting","unknown","creating"].includes(order.status)&&order.provider_order_id).slice(0,5);
+  const pendingOrders=orders.filter(order=>["waiting","unknown","creating"].includes(order.status)).slice(0,5);
   if(inboxPollTimer){clearTimeout(inboxPollTimer);inboxPollTimer=null;}
   if(pendingOrders.length){
    inboxPollTimer=setTimeout(async()=>{
