@@ -118,7 +118,7 @@ async function loadSmsOrders(){
   const data=await invokeOrder({action:"orders"});const orders=data.orders||[];box.replaceChildren();
   if(!orders.length){note(box,"No number purchases yet. Choose a supported country to get started.");return;}
   box.className="app-list";
-  const pendingOrders=orders.filter(order=>["waiting","unknown","creating"].includes(order.status)).slice(0,5);
+  const pendingOrders=orders.filter(order=>["waiting","unknown","creating"].includes(order.status)&&order.provider_order_id).slice(0,5);
   if(inboxPollTimer){clearTimeout(inboxPollTimer);inboxPollTimer=null;}
   if(pendingOrders.length){
    inboxPollTimer=setTimeout(async()=>{
@@ -152,7 +152,10 @@ async function loadSmsOrders(){
 const initialCountrySearch=document.querySelector("#country-search");
 if(initialCountrySearch)initialCountrySearch.value=new URLSearchParams(location.search).get("q")||"";
 if(results)void loadCountries();
-if(document.querySelector("#sms-orders"))void loadSmsOrders();
+if(document.querySelector("#sms-orders")){
+ void loadSmsOrders();
+ document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void loadSmsOrders();});
+}
 
 const pricingForm=document.querySelector("#pricing-form"),pricingList=document.querySelector("#pricing-rules"),pricingMessage=document.querySelector("#pricing-message"),pricingMode=document.querySelector("#pricing-mode");
 function showPricingMessage(message,kind="info"){if(!pricingMessage)return;pricingMessage.hidden=false;pricingMessage.textContent=message;pricingMessage.dataset.kind=kind;}
