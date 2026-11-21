@@ -5,3 +5,21 @@
 .brand .brand-mark svg{width:25px;height:25px;filter:drop-shadow(0 0 7px #58cfff70)}
 .brand .brand-word{font-size:20px;letter-spacing:-.8px;color:#f0f7ff}
 .brand .brand-word .brand-light{font-size:.76em;letter-spacing:1.5px;margin-left:3px;color:#76e2f5}
+
+/* Shared, calmer sign-in / registration / recovery presentation */
+body:has(.formwrap){display:grid;place-items:center;padding:36px 16px;min-height:100vh;background:radial-gradient(ellipse at 15% 12%,#1b54803d,transparent 38%),radial-gradient(ellipse at 90% 85%,#0b879a22,transparent 36%),#081426}
+.formwrap{width:min(100%,470px);margin:0 auto}
+.formwrap>.brand{margin:0 0 19px 3px;gap:12px}
+.brand .brand-mark{width:43px;height:43px;border-radius:14px}
+.brand .brand-mark svg{width:27px;height:27px}
+.auth-panel{position:relative;overflow:hidden;padding:32px;background:linear-gradient(150deg,#132945f5,#0d1b31f5);border:1px solid #355273;border-radius:21px;box-shadow:0 25px 75px #0007}
+.auth-panel:before{content:"";position:absolute;top:-100px;right:-90px;width:210px;height:210px;border:1px solid #66d8f51c;border-radius:50%;box-shadow:0 0 0 24px #66d8f50a,0 0 0 48px #66d8f506;pointer-events:none}
+.auth-panel>*{position:relative}
+.auth-panel h1{max-width:360px;font-size:29px;line-height:1.16}
+.auth-panel .muted{line-height:1.7}
+.auth-panel form>label:not(.consent){margin:4px 0 8px}
+.auth-panel input:not([type=checkbox]){height:49px;border-radius:11px}
+.auth-panel .btn{min-height:49px;border-radius:11px;box-shadow:0 9px 22px #1b9fc52b}
+.auth-switch{line-height:1.7}
+.legal-links{padding-top:14px;border-top:1px solid #2b4261}
+@media(max-width:480px){body:has(.formwrap){padding:22px 13px}.auth-panel{padding:26px 20px}.auth-panel h1{font-size:26px}}
