@@ -12,6 +12,38 @@ function fillSelect(select,items,placeholder,valueOf,labelOf,disabled=false){
  for(const item of items){const option=document.createElement("option");option.value=valueOf(item);option.textContent=labelOf(item);select.append(option);}
  select.disabled=disabled||!items.length;select.value="";
 }
+
+function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick){
+ const input=document.getElementById(inputId),list=document.getElementById(listId);if(!input||!list)return;
+ let open=false,selectedLabel="";
+ const close=()=>{open=false;list.hidden=true;input.setAttribute("aria-expanded","false");};
+ const render=()=>{
+  const q=input.value.trim().toLocaleLowerCase();
+  const items=(getItems()||[]).map(item=>({item,label:getLabel(item),value:String(getValue(item))}));
+  const filtered=items.filter(x=>!q||x.label.toLocaleLowerCase().includes(q)||String(x.value).toLocaleLowerCase()===q||x.label.toLocaleLowerCase().startsWith(q));
+  filtered.sort((a,b)=>{if(!q)return 0;const aa=a.label.toLocaleLowerCase(),bb=b.label.toLocaleLowerCase();return Number(!aa.startsWith(q))-Number(!bb.startsWith(q))||aa.localeCompare(bb);});
+  list.replaceChildren();
+  if(!filtered.length){const empty=document.createElement("div");empty.className="search-picker-empty";empty.textContent="No matching options";list.append(empty);}
+  for(const entry of filtered){
+   const option=document.createElement("button");option.type="button";option.className="search-picker-option";option.setAttribute("role","option");option.textContent=entry.label;
+   option.addEventListener("click",()=>{input.value=entry.label;selectedLabel=entry.label;onPick(entry.item);close();});
+   list.append(option);
+  }
+  list.hidden=!open;input.setAttribute("aria-expanded",String(open));
+ };
+ input.addEventListener("focus",()=>{open=true;render();});
+ input.addEventListener("click",()=>{open=true;render();});
+ input.addEventListener("input",()=>{open=true;render();});
+ input.addEventListener("keydown",event=>{if(event.key==="Escape")close();if(event.key==="ArrowDown"){open=true;render();list.querySelector("button")?.focus();}});
+ document.addEventListener("click",event=>{if(!input.parentElement.contains(event.target)){close();}});
+ return {render,close,setValue(value){input.value=value||"";selectedLabel=input.value;},clear(){input.value="";selectedLabel="";close();}};
+}
+function countryAliases(country){
+ const code=String(country.code||"").toUpperCase(),name=String(country.name||"");
+ return [name,code,...(country.aliases||[]),...(code==="GB"?["UK","United Kingdom","Britain","Great Britain"]:[]),...(code==="US"?["USA","US","United States","United States of America"]:[])].join(" ").toLowerCase();
+}
+
+let countryPicker,servicePicker;
 function setCatalog(mode){
  activeCatalog=mode==="all"?"all":"usa";
  document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===activeCatalog)));
@@ -33,13 +65,14 @@ function setCatalog(mode){
 function renderCountries(){
  if(!countrySelect)return;
  const q=(document.querySelector("#country-search")?.value||"").trim().toLowerCase();
- const filtered=countries.filter(c=>(String(c.name||"")+" "+String(c.code||"")+" "+(c.aliases||[]).join(" ")).toLowerCase().includes(q));
+ const filtered=countries.filter(c=>countryAliases(c).includes(q));
  const current=countrySelect.value;
  fillSelect(countrySelect,filtered,"Select a country",c=>c.code,c=>(c.flag?c.flag+" ":"")+c.name,!countries.length);
  if(filtered.some(c=>c.code===current))countrySelect.value=current;
  if(!filtered.length){countrySelect.disabled=true;const option=document.createElement("option");option.textContent="No matching countries";option.value="";countrySelect.append(option);}
+ countryPicker?.render();
 }
-async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error)throw error;if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
+async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error){let detail="";try{const response=error.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();detail=payload?.error||payload?.message||"";}}catch{}throw new Error(detail||error.message||"The request could not be completed.");}if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
 function renderServices(data){
  if(!providersBox)return;serviceResults=data.services||[];
  const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
@@ -47,6 +80,7 @@ function renderServices(data){
  const previous=serviceSelect?.value||"";
  fillSelect(serviceSelect,services,"Select a service",s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),!services.length);
  if(services.some(s=>s.ref===previous))serviceSelect.value=previous;
+ servicePicker?.render();
  if(!services.length){selectedService=null;note(providersBox,q?"No services match that search.":"No services are currently available for this destination.");return;}
  if(serviceSelect.value){selectedService=services.find(s=>s.ref===serviceSelect.value)||null;renderSelectedService();}
  else {selectedService=null;note(providersBox,"Choose a service from the dropdown above to view its price and availability.");}
@@ -93,12 +127,12 @@ async function loadServices(country,name,mode=activeCatalog){
  catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
-document.querySelector("#country-search")?.addEventListener("input",renderCountries);
+countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>c.code,c=>(c.flag?c.flag+" ":"")+c.name,c=>{if(countrySelect){countrySelect.value=c.code;countrySelect.dispatchEvent(new Event("change"));}});
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>c.code===countrySelect.value);if(country)loadServices(country.code,country.name,"all");});
-document.querySelector("#service-search")?.addEventListener("input",()=>renderServices({services:serviceResults}));
+servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}});
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
 const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
-if(countrySelect){void loadCountries().then(()=>{const params=new URLSearchParams(location.search);if(params.get("tab")==="all"){setCatalog("all");const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();}}else setCatalog("usa");});}
+if(countrySelect){void loadCountries().then(()=>{const params=new URLSearchParams(location.search);if(params.get("tab")==="all"){setCatalog("all");const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();countryPicker?.render();}}else setCatalog("usa");});}
 let inboxPollTimer=null,inboxPolling=false;
 async function loadSmsOrders(){
  const box=document.querySelector("#sms-orders");if(!box)return;
@@ -139,14 +173,7 @@ async function loadSmsOrders(){
  }catch(error){note(box,"Your SMS orders could not be loaded. Please refresh and try again.");console.warn("BJVERIFY orders:",error);}
 }
 const initialParams=new URLSearchParams(location.search);
-if(results){
- void loadCountries().then(()=>{
-  setCatalog(initialParams.get("tab")==="all"?"all":"usa");
-  const initialQuery=initialParams.get("q")||"";
-  const search=document.querySelector("#country-search");
-  if(search&&initialQuery){setCatalog("all");search.value=initialQuery;renderCountries();}
- });
-}
+if(document.querySelector("#all-country-picker")&&!countrySelect){setCatalog("usa");}
 if(document.querySelector("#sms-orders")){
  void loadSmsOrders();
  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void loadSmsOrders();});
