@@ -193,7 +193,7 @@ async function loadAdminPricingCatalog(){
   if(error)throw error;
   adminCountries=[{code:"*",name:"All countries (*)"},...(data?.countries||[])];
  }catch(error){console.warn("Admin country catalogue:",error);}
- pricingCountryPicker=mountSearchPicker("pricing-country-search","pricing-country-list",()=>adminCountries,c=>c.code,c=>c.flag?c.flag+" "+c.name:c.name,c=>{
+ pricingCountryPicker=mountSearchPicker("pricing-country-search","pricing-country-list",()=>adminCountries,c=>c.code+" "+countryAliases(c),c=>c.flag?c.flag+" "+c.name:c.name,c=>{
   document.querySelector("#pricing-country").value=c.code;
   void loadAdminPricingServices();
  });
