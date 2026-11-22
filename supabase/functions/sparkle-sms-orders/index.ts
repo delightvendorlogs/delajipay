@@ -7,7 +7,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const VIRTUALSMS_API_KEY = Deno.env.get("VIRTUALSMS_API_KEY") ?? "";
 const FETCHSMS_API_KEY = Deno.env.get("FETCHSMS_API_KEY") ?? "";
 const TEXTVERIFIED_API_USERNAME = Deno.env.get("TEXTVERIFIED_API_USERNAME") ?? "";
-const TEXTVERIFIED_API_KEY = Deno.env.get("TEXTVERIFIED_API_KEY") ?? "";\nconst SMSBOWER_API_KEY = Deno.env.get("SMSBOWER_API_KEY") ?? "";
+const TEXTVERIFIED_API_KEY = Deno.env.get("TEXTVERIFIED_API_KEY") ?? "";
+const SMSBOWER_API_KEY = Deno.env.get("SMSBOWER_API_KEY") ?? "";
 const SMSBOWER_URL = "https://smsbower.page/stubs/handler_api.php";
 async function smsBowerRequest(params:Record<string,string|number>){if(!SMSBOWER_API_KEY)throw new Error("SMSBower access is not configured.");const url=new URL(SMSBOWER_URL);url.searchParams.set("api_key",SMSBOWER_API_KEY);for(const [k,v] of Object.entries(params))url.searchParams.set(k,String(v));const response=await fetch(url.toString(),{headers:{Accept:"application/json,text/plain,*/*"}});const raw=await response.text();if(!response.ok){const e=new Error("SMSBower request failed.");(e as any).status=response.status;throw e;}try{return JSON.parse(raw);}catch{return raw.trim();}}
 function smsPrices(raw:any){const found:any[]=[];const visit=(node:any,key="")=>{if(!node||typeof node!=="object")return;if(Array.isArray(node)){node.forEach(x=>visit(x));return;}const cost=num(node.price??node.cost??node.activationCost),stock=num(node.count??node.stock),id=str(node.provider_id,node.providerId,node.provider,node.id,key);if(id&&id!=="0"&&cost>0&&stock>0)found.push({id,cost,stock:Math.floor(stock)});for(const [k,v] of Object.entries(node))if(!["price","cost","count","stock","provider_id","providerId","provider","id","activationCost"].includes(k))visit(v,k);};visit(raw);const map=new Map();for(const p of found){const old=map.get(p.id);if(!old||p.cost<old.cost)map.set(p.id,p);}return [...map.values()].sort((a,b)=>a.cost-b.cost||b.stock-a.stock);}
@@ -107,7 +108,8 @@ async function pricingRule(provider:string,country:string,service:string){
     ||null;
 }
 async function quote(provider:string,country:string,service:string,serviceName:string){
-  if(provider==="virtualsms"&&country==="US")throw new Error("USA orders must use Fetch SMS or TextVerified.");\n  if(provider==="smsbower"){const [serviceCode,countryId]=service.split("|");if(!serviceCode||!/^\\d+$/.test(countryId||""))throw new Error("Refresh the service list and choose again.");const raw=await smsBowerRequest({action:"getPricesV3",country:countryId,service:serviceCode});if(typeof raw==="string"&&(/^(BAD_KEY|BAD_SERVICE)/.test(raw)))throw new Error("The selected service is temporarily unavailable.");const pools=smsPrices(raw);if(!pools.length)throw new Error("Number currently out of stock. Please try again.");const pool=pools[0],fx=await fxRate(),rule=await pricingRule(provider,country,serviceCode);const providerCostNgn=pool.cost*fx;const customerPriceKobo=rule?.pricing_mode==="fixed"&&rule.fixed_price_kobo?num(rule.fixed_price_kobo):Math.ceil(providerCostNgn*(1+num(rule?.markup_percent,100)/100)*100);return {provider,providerUsd:pool.cost,fx,providerCostKobo:Math.ceil(providerCostNgn*100),customerPriceKobo,markupPercent:num(rule?.markup_percent,100),available:true,availabilityCount:pool.stock,serviceName:serviceName||serviceCode,providerId:pool.id,countryId};}
+  if(provider==="virtualsms"&&country==="US")throw new Error("USA orders must use Fetch SMS or TextVerified.");
+  if(provider==="smsbower"){const [serviceCode,countryId]=service.split("|");if(!serviceCode||!/^\\d+$/.test(countryId||""))throw new Error("Refresh the service list and choose again.");const raw=await smsBowerRequest({action:"getPricesV3",country:countryId,service:serviceCode});if(typeof raw==="string"&&(/^(BAD_KEY|BAD_SERVICE)/.test(raw)))throw new Error("The selected service is temporarily unavailable.");const pools=smsPrices(raw);if(!pools.length)throw new Error("Number currently out of stock. Please try again.");const pool=pools[0],fx=await fxRate(),rule=await pricingRule(provider,country,serviceCode);const providerCostNgn=pool.cost*fx;const customerPriceKobo=rule?.pricing_mode==="fixed"&&rule.fixed_price_kobo?num(rule.fixed_price_kobo):Math.ceil(providerCostNgn*(1+num(rule?.markup_percent,100)/100)*100);return {provider,providerUsd:pool.cost,fx,providerCostKobo:Math.ceil(providerCostNgn*100),customerPriceKobo,markupPercent:num(rule?.markup_percent,100),available:true,availabilityCount:pool.stock,serviceName:serviceName||serviceCode,providerId:pool.id,countryId};}
   if(["fetchsms","textverified"].includes(provider)&&country!=="US")throw new Error("This provider only supplies United States numbers.");
   let providerUsd=0,available=true,availabilityCount:number|null=null;
   if(provider==="fetchsms"){
@@ -196,7 +198,8 @@ async function providerStatus(order:any){
     }
     return result;
   }
-  if(order.provider_key==="smsbower"){const raw=await smsBowerRequest({action:"getStatus",id:order.provider_order_id});const value=typeof raw==="string"?raw.trim():"";if(value.startsWith("STATUS_OK:")||value.startsWith("STATUS_WAIT_RETRY:"))return {status:"received",code:value.split(":").slice(1).join(":").trim()};if(value==="STATUS_CANCEL"||value==="ACCESS_CANCEL")return {status:"cancelled"};if(value==="STATUS_FINISH"||value==="STATUS_OK"||value==="FINISH")return {status:"completed"};return {status:"waiting"};}\n  return await virtualRequest("/customer/order/"+id);
+  if(order.provider_key==="smsbower"){const raw=await smsBowerRequest({action:"getStatus",id:order.provider_order_id});const value=typeof raw==="string"?raw.trim():"";if(value.startsWith("STATUS_OK:")||value.startsWith("STATUS_WAIT_RETRY:"))return {status:"received",code:value.split(":").slice(1).join(":").trim()};if(value==="STATUS_CANCEL"||value==="ACCESS_CANCEL")return {status:"cancelled"};if(value==="STATUS_FINISH"||value==="STATUS_OK"||value==="FINISH")return {status:"completed"};return {status:"waiting"};}
+  return await virtualRequest("/customer/order/"+id);
 }
 function base64Url(bytes: Uint8Array) { let binary = ""; for (const byte of bytes) binary += String.fromCharCode(byte); return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
 function fromBase64Url(value: string) { const normalized=value.replace(/-/g,"+").replace(/_/g,"/"); const binary=atob(normalized+"=".repeat((4-normalized.length%4)%4)); return Uint8Array.from(binary,ch=>ch.charCodeAt(0)); }
@@ -285,7 +288,8 @@ async function actionCancel(orderId:string,userId:string){
   if(!order.provider_order_id)return json({success:false,error:"The provider has not confirmed a number for this request yet. Please refresh or contact support."},409);
   const id=encodeURIComponent(order.provider_order_id);
   try{
-    if(order.provider_key==="fetchsms")await fetchRequest("/verifications/"+id+"/cancel",{method:"POST"},true);\n    else if(order.provider_key==="smsbower"){const result=await smsBowerRequest({action:"setStatus",status:8,id:order.provider_order_id});if(typeof result==="string"&&!/ACCESS_CANCEL|STATUS_CANCEL|ACCESS_RETRY|OK/i.test(result))throw new Error("Cancellation not confirmed.");}
+    if(order.provider_key==="fetchsms")await fetchRequest("/verifications/"+id+"/cancel",{method:"POST"},true);
+    else if(order.provider_key==="smsbower"){const result=await smsBowerRequest({action:"setStatus",status:8,id:order.provider_order_id});if(typeof result==="string"&&!/ACCESS_CANCEL|STATUS_CANCEL|ACCESS_RETRY|OK/i.test(result))throw new Error("Cancellation not confirmed.");}
     else if(order.provider_key==="textverified")await tvRequest("/verifications/"+id+"/cancel",{method:"POST"});
     else await virtualRequest("/customer/cancel/"+id,{method:"POST"});
   }catch(error){
