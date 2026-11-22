@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
+import { askConfirm, showNotice } from "./dialog.js";
 const supabase=createClient("https://fgkkzxfaxgkkcbkwbamx.supabase.co","sb_publishable_ImuiMjql4SAceGSyvvgeww_YPC9X4I_",{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const menu=document.querySelector(".app-mobile-menu"),nav=document.querySelector(".app-nav");
 menu?.addEventListener("click",()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open));menu.textContent=open?"×":"☰";});
@@ -20,7 +21,7 @@ function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick){
  const render=()=>{
   const q=input.value.trim().toLocaleLowerCase();
   const items=(getItems()||[]).map(item=>({item,label:getLabel(item),value:String(getValue(item))}));
-  const filtered=items.filter(x=>!q||x.label.toLocaleLowerCase().includes(q)||String(x.value).toLocaleLowerCase()===q||x.label.toLocaleLowerCase().startsWith(q));
+  const filtered=items.filter(x=>!q||x.label.toLocaleLowerCase().includes(q)||String(x.value).toLocaleLowerCase().includes(q));
   filtered.sort((a,b)=>{if(!q)return 0;const aa=a.label.toLocaleLowerCase(),bb=b.label.toLocaleLowerCase();return Number(!aa.startsWith(q))-Number(!bb.startsWith(q))||aa.localeCompare(bb);});
   list.replaceChildren();
   if(!filtered.length){const empty=document.createElement("div");empty.className="search-picker-empty";empty.textContent="No matching options";list.append(empty);}
@@ -38,6 +39,8 @@ function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick){
  document.addEventListener("click",event=>{if(!input.parentElement.contains(event.target)){close();}});
  return {render,close,setValue(value){input.value=value||"";selectedLabel=input.value;},clear(){input.value="";selectedLabel="";close();}};
 }
+function countryFlag(code){const value=String(code||"").toUpperCase();return /^[A-Z]{2}$/.test(value)?String.fromCodePoint(...[...value].map(char=>127397+char.charCodeAt(0))):"🌍";}
+function serviceIcon(name){const value=String(name||"").toLowerCase();const icons=[[/whatsapp/,"🟢"],[/telegram/,"✈️"],[/google|gmail|youtube/,"🔴"],[/instagram/,"📸"],[/facebook|meta/,"🔵"],[/tiktok/,"🎵"],[/twitter|\bx\b/,"𝕏"],[/discord/,"🎮"],[/microsoft|outlook/,"🪟"],[/uber/,"🚕"],[/amazon/,"📦"],[/apple|icloud/,"🍎"],[/snapchat/,"👻"],[/reddit/,"👽"],[/binance|crypto/,"🟡"],[/steam/,"🎮"],[/linkedin/,"💼"],[/paypal/,"💳"],[/tinder/,"❤️"],[/viber/,"📞"]];return icons.find(([pattern])=>pattern.test(value))?.[1]||"📱";}
 function countryAliases(country){
  const code=String(country.code||"").toUpperCase(),name=String(country.name||"");
  return [name,code,...(country.aliases||[]),...(code==="GB"?["UK","United Kingdom","Britain","Great Britain"]:[]),...(code==="US"?["USA","US","United States","United States of America"]:[])].join(" ").toLowerCase();
@@ -67,7 +70,7 @@ function renderCountries(){
  const q=(document.querySelector("#country-search")?.value||"").trim().toLowerCase();
  const filtered=countries.filter(c=>countryAliases(c).includes(q));
  const current=countrySelect.value;
- fillSelect(countrySelect,filtered,"Select a country",c=>c.code,c=>(c.flag?c.flag+" ":"")+c.name,!countries.length);
+ fillSelect(countrySelect,filtered,"Select a country",c=>c.code,c=>countryFlag(c.code)+" "+c.name,!countries.length);
  if(filtered.some(c=>c.code===current))countrySelect.value=current;
  if(!filtered.length){countrySelect.disabled=true;const option=document.createElement("option");option.textContent="No matching countries";option.value="";countrySelect.append(option);}
  countryPicker?.render();
@@ -78,7 +81,7 @@ function renderServices(data){
  const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
  const services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
  const previous=serviceSelect?.value||"";
- fillSelect(serviceSelect,services,"Select a service",s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),!services.length);
+ fillSelect(serviceSelect,services,"Select a service",s=>s.ref,s=>serviceIcon(s.name)+"  "+s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),!services.length);
  if(services.some(s=>s.ref===previous))serviceSelect.value=previous;
  servicePicker?.render();
  if(!services.length){selectedService=null;note(providersBox,q?"No services match that search.":"No services are currently available for this destination.");return;}
@@ -90,7 +93,7 @@ function renderSelectedService(){
  const service=selectedService;providersBox.replaceChildren();
  const card=document.createElement("div");card.className="catalogue-selected-service";
  const details=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small");
- title.textContent=service.name;
+ title.textContent=serviceIcon(service.name)+"  "+service.name;
  meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" numbers currently available":"Availability is checked again before purchase";
  details.append(title,meta);
  const actions=document.createElement("div");actions.className="catalogue-service-actions";
@@ -104,7 +107,7 @@ function renderSelectedService(){
    let buy=actions.querySelector("[data-buy-service]");
    if(!buy){buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.dataset.buyService="true";buy.textContent="Get this number";actions.append(buy);}
    buy.onclick=async()=>{
-    if(!confirm("Get a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?"))return;
+    if(!await askConfirm({title:"Confirm number purchase",message:"Get a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?",note:"Your wallet will only be charged if the provider confirms the order.",confirmText:"Continue to buy"}))return;
     buy.disabled=true;buy.textContent="Processing…";
     try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref},{"Idempotency-Key":crypto.randomUUID()});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
     catch(error){result.textContent=error.message||"The request could not be completed.";buy.disabled=false;buy.textContent="Try again";}
@@ -163,9 +166,9 @@ async function loadSmsOrders(){
    const meta=document.createElement("small");meta.style.color="#8ea5c0";meta.textContent=new Date(order.created_at).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"})+" · "+money(order.customer_price_kobo);card.append(meta);
    if(["waiting","unknown","creating"].includes(order.status)){
     const refresh=document.createElement("button");refresh.type="button";refresh.className="app-button secondary";refresh.textContent="Refresh status";
-    refresh.addEventListener("click",async()=>{refresh.disabled=true;refresh.textContent="Checking…";try{await invokeOrder({action:"status",order_id:order.id});await loadSmsOrders();}catch(error){refresh.disabled=false;refresh.textContent="Try again";alert(error.message||"Could not refresh order status.");}});
+    refresh.addEventListener("click",async()=>{refresh.disabled=true;refresh.textContent="Checking…";try{await invokeOrder({action:"status",order_id:order.id});await loadSmsOrders();}catch(error){refresh.disabled=false;refresh.textContent="Try again";void showNotice({title:"Status check failed",message:error.message||"Could not refresh order status."});}});
     const cancel=document.createElement("button");cancel.type="button";cancel.className="app-button secondary";cancel.textContent="Cancel request";
-    cancel.addEventListener("click",async()=>{if(!confirm("Try to cancel this verification? A received message cannot be refunded."))return;cancel.disabled=true;cancel.textContent="Cancelling…";try{await invokeOrder({action:"cancel",order_id:order.id});await loadSmsOrders();}catch(error){cancel.disabled=false;cancel.textContent="Try again";alert(error.message||"Cancellation could not be confirmed.");}});
+    cancel.addEventListener("click",async()=>{if(!await askConfirm({title:"Cancel verification?",message:"Try to cancel this verification?",note:"A received message cannot be refunded.",confirmText:"Yes, try to cancel"}))return;cancel.disabled=true;cancel.textContent="Cancelling…";try{await invokeOrder({action:"cancel",order_id:order.id});await loadSmsOrders();}catch(error){cancel.disabled=false;cancel.textContent="Try again";void showNotice({title:"Cancellation failed",message:error.message||"Cancellation could not be confirmed."});}});
     card.append(refresh,cancel);
    }
    box.append(card);
@@ -279,7 +282,7 @@ async function loadAdminSmsOrders(){
    if(order.sms_text){const sms=document.createElement("p");sms.style.fontSize="10px";sms.textContent=order.sms_text;row.append(sms);}
    if(order.provider_order_id&&["waiting","unknown","creating"].includes(order.status)){
     const refresh=document.createElement("button");refresh.type="button";refresh.className="app-button secondary";refresh.textContent="Check provider status";
-    refresh.addEventListener("click",async()=>{refresh.disabled=true;refresh.textContent="Checking…";try{await invokeOrder({action:"status",order_id:order.id});await loadAdminSmsOrders();}catch(error){refresh.disabled=false;refresh.textContent="Try again";alert(error.message||"Status check failed.");}});
+    refresh.addEventListener("click",async()=>{refresh.disabled=true;refresh.textContent="Checking…";try{await invokeOrder({action:"status",order_id:order.id});await loadAdminSmsOrders();}catch(error){refresh.disabled=false;refresh.textContent="Try again";void showNotice({title:"Status check failed",message:error.message||"Status check failed."});}});
     row.append(refresh);
    }
    box.append(row);
