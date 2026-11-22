@@ -154,3 +154,16 @@ body:not(.bjverify-site) a{color:#76dff4}
 .engine-cheapest{color:#35d39a;font-size:9px;font-weight:850;letter-spacing:.45px}
 
 .engine-tabs[hidden]{display:none!important}
+
+
+/* BJVERIFY catalogue: clean horizontal text tabs with persistent underline */
+.catalogue-tabs{display:flex!important;grid-template-columns:none!important;align-items:center;gap:30px;overflow-x:auto;white-space:nowrap;margin:16px 0 18px;padding:0 0 2px;border-bottom:1px solid #263b58;scrollbar-width:none}
+.catalogue-tabs::-webkit-scrollbar{display:none}
+.catalogue-tab{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:44px;padding:0 2px 8px;border:0!important;border-bottom:2px solid transparent!important;border-radius:0!important;background:transparent!important;color:#aebfd5!important;font:500 16px 'DM Sans',sans-serif;box-shadow:none!important;cursor:pointer}
+.catalogue-tab[aria-selected=true]{color:#69baff!important;border-bottom-color:#3b9df5!important;box-shadow:none!important}
+.engine-tabs{display:flex;align-items:center;gap:28px;overflow-x:auto;white-space:nowrap;margin:5px 0 17px;padding:0 0 2px;border-bottom:1px solid #263b58;scrollbar-width:none}
+.engine-tab{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-height:43px;padding:0 2px 7px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#aebfd5;font:500 16px 'DM Sans',sans-serif;cursor:pointer}
+.engine-tab[aria-selected=true]{color:#69baff;border-bottom-color:#3b9df5}
+#all-country-picker[hidden],#usa-intro[hidden],#all-country-engines[hidden]{display:none!important}
+#all-country-picker:not([hidden]){display:block!important}
+@media(max-width:560px){.catalogue-tabs{gap:24px}.catalogue-tab{font-size:15px}}
