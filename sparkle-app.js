@@ -17,28 +17,32 @@ function fillSelect(select,items,placeholder,valueOf,labelOf,disabled=false){
 }
 
 function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick,getIcon=null){
- const input=document.getElementById(inputId),list=document.getElementById(listId);if(!input||!list)return;
+ const input=document.getElementById(inputId),list=document.getElementById(listId),wrap=input?.closest(".search-picker");if(!input||!list||!wrap)return;
  let open=false,selectedLabel="";
- const close=()=>{open=false;list.hidden=true;input.setAttribute("aria-expanded","false");if(selectedLabel)input.value=selectedLabel;};
+ const show=()=>{open=true;list.hidden=false;list.style.display="block";input.setAttribute("aria-expanded","true");};
+ const close=()=>{open=false;list.hidden=true;list.style.display="none";input.setAttribute("aria-expanded","false");if(selectedLabel)input.value=selectedLabel;};
  const render=()=>{
   const q=input.value.trim().toLocaleLowerCase();
-  const items=(getItems()||[]).map(item=>({item,label:getLabel(item),value:String(getValue(item))}));
-  const filtered=items.filter(x=>!q||x.label.toLocaleLowerCase().includes(q)||String(x.value).toLocaleLowerCase().includes(q));
+  const items=(getItems()||[]).map(item=>({item,label:String(getLabel(item)||""),value:String(getValue(item)||"")}));
+  const filtered=items.filter(x=>!q||x.label.toLocaleLowerCase().includes(q)||x.value.toLocaleLowerCase().includes(q));
   filtered.sort((a,b)=>{if(!q)return 0;const aa=a.label.toLocaleLowerCase(),bb=b.label.toLocaleLowerCase();return Number(!aa.startsWith(q))-Number(!bb.startsWith(q))||aa.localeCompare(bb);});
   list.replaceChildren();
-  if(!filtered.length){const empty=document.createElement("div");empty.className="search-picker-empty";empty.textContent="No matching options";list.append(empty);}
+  if(!filtered.length){const empty=document.createElement("div");empty.className="search-picker-empty";empty.textContent=items.length?"No matching options":"No options available";list.append(empty);}
   for(const entry of filtered){
-   const option=document.createElement("button");option.type="button";option.className="search-picker-option";option.setAttribute("role","option");if(getIcon){appendServiceIcon(option,getIcon(entry.item));const label=document.createElement("span");label.textContent=entry.label;option.append(label);}else option.textContent=entry.label;
-   option.addEventListener("click",()=>{input.value=entry.label;selectedLabel=entry.label;onPick(entry.item);close();});
+   const option=document.createElement("button");option.type="button";option.className="search-picker-option";option.setAttribute("role","option");
+   if(getIcon){appendServiceIcon(option,getIcon(entry.item));const label=document.createElement("span");label.textContent=entry.label;option.append(label);}else option.textContent=entry.label;
+   option.addEventListener("pointerdown",event=>event.preventDefault());
+   option.addEventListener("click",()=>{input.value=entry.label;selectedLabel=entry.label;close();onPick(entry.item);});
    list.append(option);
   }
-  list.hidden=!open;input.setAttribute("aria-expanded",String(open));
+  if(open)show();else close();
  };
- input.addEventListener("focus",()=>{if(selectedLabel&&input.value===selectedLabel)input.value="";open=true;render();});
- input.addEventListener("click",()=>{open=true;render();});
- input.addEventListener("input",()=>{open=true;render();});
- input.addEventListener("keydown",event=>{if(event.key==="Escape")close();if(event.key==="ArrowDown"){open=true;render();list.querySelector("button")?.focus();}});
- document.addEventListener("click",event=>{if(!input.parentElement.contains(event.target)){close();}});
+ input.addEventListener("focus",()=>{if(selectedLabel&&input.value===selectedLabel)input.value="";show();render();});
+ input.addEventListener("click",()=>{show();render();});
+ input.addEventListener("input",()=>{show();render();});
+ input.addEventListener("keydown",event=>{if(event.key==="Escape")close();if(event.key==="ArrowDown"){show();render();list.querySelector("button")?.focus();}});
+ document.addEventListener("pointerdown",event=>{if(!wrap.contains(event.target))close();});
+ list.hidden=true;list.style.display="none";input.setAttribute("aria-expanded","false");
  return {render,close,setValue(value){input.value=value||"";selectedLabel=input.value;},clear(){input.value="";selectedLabel="";close();}};
 }
 function countryFlag(code){const value=String(code||"").toUpperCase();return /^[A-Z]{2}$/.test(value)?String.fromCodePoint(...[...value].map(char=>127397+char.charCodeAt(0))):"🌍";}
