@@ -17,34 +17,46 @@ function fillSelect(select,items,placeholder,valueOf,labelOf,disabled=false){
 }
 
 function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick,getIcon=null){
- const input=document.getElementById(inputId),list=document.getElementById(listId),wrap=input?.closest(".search-picker");if(!input||!list||!wrap)return;
- let open=false,selectedLabel="";
- const show=()=>{open=true;list.hidden=false;list.removeAttribute("hidden");list.style.setProperty("display","block","important");list.style.setProperty("visibility","visible","important");list.style.setProperty("opacity","1","important");list.style.setProperty("position","relative","important");list.style.setProperty("z-index","9999","important");input.setAttribute("aria-expanded","true");};
- const close=()=>{open=false;list.hidden=true;list.setAttribute("hidden","");list.style.setProperty("display","none","important");input.setAttribute("aria-expanded","false");if(selectedLabel)input.value=selectedLabel;};
+ const input=document.getElementById(inputId),legacyList=document.getElementById(listId);
+ if(!input||!legacyList)return null;
+ const datalist=document.createElement("datalist");
+ datalist.id=listId+"-native-options";
+ input.setAttribute("list",datalist.id);
+ input.setAttribute("autocomplete","off");
+ legacyList.replaceWith(datalist);
+ let selectedLabel="";
+ const entries=()=> (getItems()||[]).map(item=>({item,label:String(getLabel(item)||""),value:String(getValue(item)||"")}));
  const render=()=>{
   const q=input.value.trim().toLocaleLowerCase();
-  const items=(getItems()||[]).map(item=>({item,label:String(getLabel(item)||""),value:String(getValue(item)||"")}));
-  const filtered=items.filter(x=>!q||x.label.toLocaleLowerCase().includes(q)||x.value.toLocaleLowerCase().includes(q));
-  filtered.sort((a,b)=>{if(!q)return a.label.localeCompare(b.label);const aa=a.label.toLocaleLowerCase(),bb=b.label.toLocaleLowerCase();return Number(!aa.startsWith(q))-Number(!bb.startsWith(q))||aa.localeCompare(bb);});
-  list.replaceChildren();
-  if(!filtered.length){const empty=document.createElement("div");empty.className="search-picker-empty";empty.textContent=items.length?"No matching options":"Loading countries…";list.append(empty);}
+  const filtered=entries().filter(x=>!q||x.label.toLocaleLowerCase().includes(q)||x.value.toLocaleLowerCase().includes(q));
+  datalist.replaceChildren();
   for(const entry of filtered){
-   const option=document.createElement("button");option.type="button";option.className="search-picker-option";option.setAttribute("role","option");
-   if(getIcon){appendServiceIcon(option,getIcon(entry.item));const label=document.createElement("span");label.textContent=entry.label;option.append(label);}else option.textContent=entry.label;
-   option.addEventListener("click",()=>{input.value=entry.label;selectedLabel=entry.label;close();onPick(entry.item);});
-   list.append(option);
+   const option=document.createElement("option");
+   option.value=entry.label;
+   option.label=entry.label;
+   datalist.append(option);
   }
-  if(open)show();else close();
  };
- const openAndRender=()=>{if(selectedLabel&&input.value===selectedLabel)input.value="";show();render();};
- input.addEventListener("focus",openAndRender);
- input.addEventListener("click",openAndRender);
- input.addEventListener("pointerdown",()=>{if(!open){show();}});
- input.addEventListener("input",()=>{show();render();});
- input.addEventListener("keydown",event=>{if(event.key==="Escape")close();if(event.key==="ArrowDown"){show();render();list.querySelector("button")?.focus();}});
- document.addEventListener("pointerdown",event=>{if(!wrap.contains(event.target))close();});
- list.hidden=true;list.setAttribute("hidden","");list.style.setProperty("display","none","important");input.setAttribute("aria-expanded","false");
- return {render,close,setValue(value){input.value=value||"";selectedLabel=input.value;},clear(){input.value="";selectedLabel="";close();}};
+ const choose=()=>{
+  const typed=input.value.trim();
+  const match=entries().find(x=>x.label===typed);
+  if(!match)return;
+  selectedLabel=match.label;
+  input.value=match.label;
+  onPick(match.item);
+ };
+ input.addEventListener("focus",render);
+ input.addEventListener("click",render);
+ input.addEventListener("input",()=>{selectedLabel="";render();});
+ input.addEventListener("change",choose);
+ input.addEventListener("keydown",event=>{if(event.key==="Enter"){choose();}});
+ render();
+ return {
+  render,
+  close(){},
+  setValue(value){input.value=value||"";selectedLabel=input.value;},
+  clear(){input.value="";selectedLabel="";render();}
+ };
 }
 function countryFlag(code){const value=String(code||"").toUpperCase();return /^[A-Z]{2}$/.test(value)?String.fromCodePoint(...[...value].map(char=>127397+char.charCodeAt(0))):"🌍";}
 function serviceIconUrl(service){
