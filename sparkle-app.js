@@ -182,7 +182,7 @@ function renderSelectedService(){
   }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
   finally{quoteButton.textContent="Refresh price";quoteButton.disabled=false;}
  });
- actions.append(quoteButton,result);card.append(details,actions);providersBox.append(card);
+ if(activeEngine==="2"){quoteButton.hidden=true;queueMicrotask(()=>quoteButton.click());}actions.append(quoteButton,result);card.append(details,actions);providersBox.append(card);
 }
 async function loadCountries(){
  if(!countrySelect)return;fillSelect(countrySelect,[],"Loading countries…",x=>x.code,x=>x.name,true);
