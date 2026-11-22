@@ -80,9 +80,9 @@ function setCatalog(mode){
  activeCatalog=requested;
  document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===requested)));
  const picker=document.querySelector("#all-country-picker"),usaIntro=document.querySelector("#usa-intro"),engines=document.querySelector("#all-country-engines");
- if(picker)picker.hidden=requested!=="all";
- if(usaIntro)usaIntro.hidden=requested!=="usa";
- if(engines)engines.hidden=requested!=="all";
+ if(picker){picker.hidden=requested!=="all";picker.style.display=requested==="all"?"block":"none";}
+ if(usaIntro){usaIntro.hidden=requested!=="usa";usaIntro.style.display=requested==="usa"?"block":"none";}
+ if(engines){engines.hidden=requested!=="all";engines.style.display=requested==="all"?"flex":"none";}
  const search=document.querySelector("#service-search");if(search)search.value="";
  catalogRequest++;selectedService=null;servicePicker?.clear();countryPicker?.clear();
  if(requested==="usa"){
@@ -191,8 +191,8 @@ async function loadServices(country,name,mode=activeCatalog,countryId=""){
  try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode,engine:activeEngine,country_id:countryId}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
  catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
-document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
-document.querySelectorAll("[data-engine-tab]").forEach(button=>button.addEventListener("click",()=>setEngine(button.dataset.engineTab)));
+document.addEventListener("click",event=>{const button=event.target.closest("[data-catalog-tab]");if(!button)return;event.preventDefault();setCatalog(button.dataset.catalogTab);});
+document.addEventListener("click",event=>{const button=event.target.closest("[data-engine-tab]");if(!button)return;event.preventDefault();setEngine(button.dataset.engineTab);});
 countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>(c.key||c.code)+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{if(countrySelect){countrySelect.value=c.key||c.code;countrySelect.dispatchEvent(new Event("change"));}});
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>(c.key||c.code)===countrySelect.value);if(country)loadServices(country.code,country.name,"all",country.id||"");});
 servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}},s=>s);
