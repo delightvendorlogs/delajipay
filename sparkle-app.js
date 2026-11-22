@@ -16,7 +16,7 @@ function fillSelect(select,items,placeholder,valueOf,labelOf,disabled=false){
 function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick){
  const input=document.getElementById(inputId),list=document.getElementById(listId);if(!input||!list)return;
  let open=false,selectedLabel="";
- const close=()=>{open=false;list.hidden=true;input.setAttribute("aria-expanded","false");};
+ const close=()=>{open=false;list.hidden=true;input.setAttribute("aria-expanded","false");if(selectedLabel)input.value=selectedLabel;};
  const render=()=>{
   const q=input.value.trim().toLocaleLowerCase();
   const items=(getItems()||[]).map(item=>({item,label:getLabel(item),value:String(getValue(item))}));
@@ -31,7 +31,7 @@ function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick){
   }
   list.hidden=!open;input.setAttribute("aria-expanded",String(open));
  };
- input.addEventListener("focus",()=>{open=true;render();});
+ input.addEventListener("focus",()=>{if(selectedLabel&&input.value===selectedLabel)input.value="";open=true;render();});
  input.addEventListener("click",()=>{open=true;render();});
  input.addEventListener("input",()=>{open=true;render();});
  input.addEventListener("keydown",event=>{if(event.key==="Escape")close();if(event.key==="ArrowDown"){open=true;render();list.querySelector("button")?.focus();}});
@@ -120,7 +120,7 @@ async function loadCountries(){
  catch(error){fillSelect(countrySelect,[],"Country list unavailable",x=>x.code,x=>x.name,true);console.warn("Country catalogue:",error);}
 }
 async function loadServices(country,name,mode=activeCatalog){
- if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;selectedService=null;
+ if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;selectedService=null;servicePicker?.clear();
  if(heading)heading.textContent=mode==="usa"?"USA services":selectedCountryName+" services";if(description)description.textContent="Choose a service to see its customer price.";
  fillSelect(serviceSelect,[],"Loading services…",x=>x.ref,x=>x.name,true);note(providersBox,"Loading available services…");
  try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
