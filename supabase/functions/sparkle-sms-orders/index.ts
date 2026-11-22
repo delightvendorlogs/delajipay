@@ -27,6 +27,16 @@ function str(...values: unknown[]): string {
   return "";
 }
 function num(v: unknown, fallback = 0): number { const n = Number(v); return Number.isFinite(n) ? n : fallback; }
+function customerProviderError(error: unknown): "insufficient_funds" | "out_of_stock" | "" {
+  const value = error as any;
+  const detail = [value?.message, value?.data?.message, value?.data?.error, value?.data?.detail, value?.data?.code, JSON.stringify(value?.data ?? {})].filter(Boolean).join(" ").toLowerCase();
+  if (/(insufficient|not enough|low)\\s+(funds?|balance|credits?)|\\b(balance|credit)\\s+(is\\s+)?(too\\s+low|insufficient)|\\binsufficient_funds?\\b|\\bno credits?\\b/.test(detail)) return "insufficient_funds";
+  if (/(out of stock|no stock|sold out|temporarily unavailable|service.{0,35}(unavailable|not available|stopped|disabled|inactive)|(?:unavailable|stopped|disabled|inactive).{0,35}service|no numbers? available|no inventory)/.test(detail)) return "out_of_stock";
+  return "";
+}
+function customerProviderErrorMessage(kind: "insufficient_funds" | "out_of_stock") {
+  return kind === "insufficient_funds" ? "Insufficient fund. Please contact support." : "Number currently out of stock. Please try again.";
+}
 function rows(data: any): any[] {
   if (Array.isArray(data)) return data;
   for (const key of ["data","results","services","orders","messages","sms"]) if (Array.isArray(data?.[key])) return data[key];
@@ -211,8 +221,8 @@ async function actionQuote(body:any){
 async function actionBuy(body:any,userId:string,req:Request){
  const catalogue=str(body?.catalogue).toLowerCase(),country=str(body?.country_iso).toUpperCase(),countryName=str(body?.country_name,country);
  const service=await resolveServiceRef(str(body?.service_ref),catalogue,country),provider=service.provider,serviceCode=service.code,serviceName=service.name;
- const q=await quote(provider,country,serviceCode,serviceName);if(!q.available)return json({success:false,error:"This service is currently out of stock.",available:false},409);
- if(provider==="fetchsms"){const wallet=await fetchRequest("/wallet/balance",{},true);if(num(wallet?.balance_cents,-1)<Math.ceil(q.providerUsd*100))return json({success:false,error:"This destination is temporarily unavailable. Please try again later."},503);}
+ const q=await quote(provider,country,serviceCode,serviceName);if(!q.available)return json({success:false,error:"Number currently out of stock. Please try again.",available:false},409);
+ if(provider==="fetchsms"){const wallet=await fetchRequest("/wallet/balance",{},true);if(num(wallet?.balance_cents,-1)<Math.ceil(q.providerUsd*100))return json({success:false,error:"Insufficient fund. Please contact support."},503);}
  const idempotencyKey=str(req.headers.get("idempotency-key"),body.idempotency_key,body.idempotencyKey)||crypto.randomUUID();
  const reserved=await admin.rpc("sparkle_create_sms_order",{p_user_id:userId,p_provider_key:provider,p_idempotency_key:idempotencyKey,p_country_iso:country,p_country_name:countryName,p_service_code:serviceCode,p_service_name:serviceName,p_customer_price_kobo:q.customerPriceKobo,p_provider_cost_usd:q.providerUsd,p_exchange_rate:q.fx});
  if(reserved.error){const message=reserved.error.message||"Unable to reserve this order.";if(message.includes("INSUFFICIENT_FUNDS"))return json({success:false,error:"Your wallet balance is too low. Please add funds."},402);return json({success:false,error:"Your order could not be reserved. Please try again."},400);}
@@ -223,7 +233,7 @@ async function actionBuy(body:any,userId:string,req:Request){
   if(provider==="fetchsms")providerData=await fetchRequest("/verifications",{method:"POST",headers:{"Idempotency-Key":idempotencyKey},body:JSON.stringify({service:Number(serviceCode)})},true);
   else if(provider==="textverified")providerData=await tvRequest("/verifications",{method:"POST",headers:{"Idempotency-Key":idempotencyKey},body:JSON.stringify({serviceName,capability:"sms",numberType:"mobile",areaCodeSelectOption:[],carrierSelectOption:[]})});
   else providerData=await virtualRequest("/customer/purchase",{method:"POST",body:JSON.stringify({service:serviceCode,country})});
- }catch(error){const status=num((error as any)?.status);if(status>=400&&status<500){await refund(orderId,"failed","Provider rejected number purchase");return json({success:false,error:"A number could not be allocated. Your wallet has been refunded.",refunded:true},409);}await updateOrder(orderId,{status:"unknown",provider_state:"provider_result_unconfirmed"});return json({success:true,pending:true,order_id:orderId,message:"Your number request is being checked. Please do not submit another purchase."},202);}
+ }catch(error){const status=num((error as any)?.status),kind=customerProviderError(error);if(kind){await refund(orderId,"failed",kind==="insufficient_funds"?"Provider has insufficient funds":"Provider service is unavailable or out of stock");return json({success:false,error:customerProviderErrorMessage(kind),refunded:true},409);}if(status>=400&&status<500){await refund(orderId,"failed","Provider rejected number purchase");return json({success:false,error:"We could not complete that request. Please try again or contact support.",refunded:true},409);}await updateOrder(orderId,{status:"unknown",provider_state:"provider_result_unconfirmed"});return json({success:true,pending:true,order_id:orderId,message:"Your number request is being checked. Please do not submit another purchase."},202);}
  let providerOrderId=getProviderId(providerData,provider),phone=getPhone(providerData),expiry=getExpiry(providerData);
  if(provider==="textverified"&&!providerOrderId){const selfLink=str(providerData?.href,providerData?.links?.self?.href);if(selfLink){try{const linkUrl=new URL(selfLink);if(linkUrl.hostname==="www.textverified.com"){const details=await tvRequest(linkUrl.pathname+linkUrl.search);providerOrderId=getProviderId(details,provider);phone=phone||getPhone(details);expiry=expiry||getExpiry(details);}}catch(error){console.error("Reservation detail lookup failed:",String(error));}}}
  if(!providerOrderId){await updateOrder(orderId,{status:"unknown",provider_state:"provider_order_id_missing",provider_payload:{response_received:true}});return json({success:true,pending:true,order_id:orderId,message:"Your number request is awaiting confirmation. Please do not purchase again."},202);}
@@ -342,7 +352,8 @@ Deno.serve(async(req:Request)=>{
   }catch(error){
     const message=error instanceof Error?error.message:"Unexpected server error.";
     console.error("BJVERIFY SMS order function:",message);
-    const safeMessage=/virtualsms|fetchsms|textverified|provider|api key|credential|http \\d{3}|service code|country id/i.test(message)?"We could not complete that request. Please try again.":message;
+    const kind=customerProviderError(error);
+    const safeMessage=kind?customerProviderErrorMessage(kind):/virtualsms|fetchsms|textverified|provider|api key|credential|http \\d{3}|service code|country id/i.test(message)?"We could not complete that request. Please try again.":message;
     return json({success:false,error:safeMessage},400);
   }
 });
