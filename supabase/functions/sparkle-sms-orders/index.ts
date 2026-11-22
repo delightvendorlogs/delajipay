@@ -121,7 +121,7 @@ async function quote(provider:string,country:string,service:string,serviceName:s
     ]);
     const item=rows(catalog).find((x:any)=>String(x.id)===service);
     availabilityCount=num(item?.short_available);
-    available=availabilityCount>0;
+    available=true;
     providerUsd=num(q?.total_cents,-1)/100;
     if(providerUsd<0)throw new Error("Fetch SMS did not return a valid price.");
     const rule=await pricingRule(provider,country,service);
