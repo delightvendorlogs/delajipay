@@ -219,7 +219,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(()=>({}));
     const action = str(body?.action).toLowerCase();
     if (action === "countries") return json(await countries(str(body?.engine,"1"),str(body?.country_id)));
-    if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase(),false,str(body?.engine,"1")));
+    if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase(),false,str(body?.engine,"1"),str(body?.country_id)));
     if (action === "admin-services") {
       const user = await getUser(req);
       if (user.app_metadata?.role !== "admin") return json({ success:false,error:"Administrator access is required." },403);
