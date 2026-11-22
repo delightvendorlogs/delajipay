@@ -7,7 +7,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const VIRTUALSMS_API_KEY = Deno.env.get("VIRTUALSMS_API_KEY") ?? "";
 const FETCHSMS_API_KEY = Deno.env.get("FETCHSMS_API_KEY") ?? "";
 const TEXTVERIFIED_API_USERNAME = Deno.env.get("TEXTVERIFIED_API_USERNAME") ?? "";
-const TEXTVERIFIED_API_KEY = Deno.env.get("TEXTVERIFIED_API_KEY") ?? "";
+const TEXTVERIFIED_API_KEY = Deno.env.get("TEXTVERIFIED_API_KEY") ?? "";\nconst SMSBOWER_API_KEY = Deno.env.get("SMSBOWER_API_KEY") ?? "";
+const SMSBOWER_URL = "https://smsbower.page/stubs/handler_api.php";
+async function smsBowerRequest(params:Record<string,string|number>){if(!SMSBOWER_API_KEY)throw new Error("SMSBower access is not configured.");const url=new URL(SMSBOWER_URL);url.searchParams.set("api_key",SMSBOWER_API_KEY);for(const [k,v] of Object.entries(params))url.searchParams.set(k,String(v));const response=await fetch(url.toString(),{headers:{Accept:"application/json,text/plain,*/*"}});const raw=await response.text();if(!response.ok){const e=new Error("SMSBower request failed.");(e as any).status=response.status;throw e;}try{return JSON.parse(raw);}catch{return raw.trim();}}
+function smsPrices(raw:any){const found:any[]=[];const visit=(node:any,key="")=>{if(!node||typeof node!=="object")return;if(Array.isArray(node)){node.forEach(x=>visit(x));return;}const cost=num(node.price??node.cost??node.activationCost),stock=num(node.count??node.stock),id=str(node.provider_id,node.providerId,node.provider,node.id,key);if(id&&id!=="0"&&cost>0&&stock>0)found.push({id,cost,stock:Math.floor(stock)});for(const [k,v] of Object.entries(node))if(!["price","cost","count","stock","provider_id","providerId","provider","id","activationCost"].includes(k))visit(v,k);};visit(raw);const map=new Map();for(const p of found){const old=map.get(p.id);if(!old||p.cost<old.cost)map.set(p.id,p);}return [...map.values()].sort((a,b)=>a.cost-b.cost||b.stock-a.stock);}
+
 
 const VIRTUALSMS_BASE = "https://virtualsms.io/api/v1";
 const FETCHSMS_BASE = "https://api.fetchsms.com/v1";
@@ -103,7 +107,7 @@ async function pricingRule(provider:string,country:string,service:string){
     ||null;
 }
 async function quote(provider:string,country:string,service:string,serviceName:string){
-  if(provider==="virtualsms"&&country==="US")throw new Error("USA orders must use Fetch SMS or TextVerified.");
+  if(provider==="virtualsms"&&country==="US")throw new Error("USA orders must use Fetch SMS or TextVerified.");\n  if(provider==="smsbower"){const [serviceCode,countryId]=service.split("|");if(!serviceCode||!/^\\d+$/.test(countryId||""))throw new Error("Refresh the service list and choose again.");const raw=await smsBowerRequest({action:"getPricesV3",country:countryId,service:serviceCode});if(typeof raw==="string"&&(/^(BAD_KEY|BAD_SERVICE)/.test(raw)))throw new Error("The selected service is temporarily unavailable.");const pools=smsPrices(raw);if(!pools.length)throw new Error("Number currently out of stock. Please try again.");const pool=pools[0],fx=await fxRate(),rule=await pricingRule(provider,country,serviceCode);const providerCostNgn=pool.cost*fx;const customerPriceKobo=rule?.pricing_mode==="fixed"&&rule.fixed_price_kobo?num(rule.fixed_price_kobo):Math.ceil(providerCostNgn*(1+num(rule?.markup_percent,100)/100)*100);return {provider,providerUsd:pool.cost,fx,providerCostKobo:Math.ceil(providerCostNgn*100),customerPriceKobo,markupPercent:num(rule?.markup_percent,100),available:true,availabilityCount:pool.stock,serviceName:serviceName||serviceCode,providerId:pool.id,countryId};}
   if(["fetchsms","textverified"].includes(provider)&&country!=="US")throw new Error("This provider only supplies United States numbers.");
   let providerUsd=0,available=true,availabilityCount:number|null=null;
   if(provider==="fetchsms"){
@@ -148,7 +152,7 @@ function getProviderId(data:any,provider:string){
   if(provider==="textverified")return str(data?.id,data?.verificationId,data?.verification_id,data?.data?.id,data?.data?.verificationId);
   return str(data?.id,data?.order_id,data?.verification_id,data?.data?.id,data?.data?.order_id);
 }
-function getPhone(data:any){return str(data?.number,data?.phone_number,data?.phoneNumber,data?.phone,data?.data?.number,data?.data?.phone_number,data?.data?.phoneNumber,data?.data?.phone);}
+function getPhone(data:any){return str(data?.phoneNumber,data?.phone_number,data?.number,data?.phone_number,data?.phoneNumber,data?.phone,data?.data?.number,data?.data?.phone_number,data?.data?.phoneNumber,data?.data?.phone);}
 function getExpiry(data:any){const raw=str(data?.expires_at,data?.expiresAt,data?.expiry,data?.expires,data?.data?.expires_at);if(!raw)return null;const d=new Date(raw);return Number.isFinite(d.getTime())?d.toISOString():null;}
 function findCode(root:any):string{
   const seen=new Set<object>(),stack=[root];
@@ -192,7 +196,7 @@ async function providerStatus(order:any){
     }
     return result;
   }
-  return await virtualRequest("/customer/order/"+id);
+  if(order.provider_key==="smsbower"){const raw=await smsBowerRequest({action:"getStatus",id:order.provider_order_id});const value=typeof raw==="string"?raw.trim():"";if(value.startsWith("STATUS_OK:")||value.startsWith("STATUS_WAIT_RETRY:"))return {status:"received",code:value.split(":").slice(1).join(":").trim()};if(value==="STATUS_CANCEL"||value==="ACCESS_CANCEL")return {status:"cancelled"};if(value==="STATUS_FINISH"||value==="STATUS_OK"||value==="FINISH")return {status:"completed"};return {status:"waiting"};}\n  return await virtualRequest("/customer/order/"+id);
 }
 function base64Url(bytes: Uint8Array) { let binary = ""; for (const byte of bytes) binary += String.fromCharCode(byte); return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
 function fromBase64Url(value: string) { const normalized=value.replace(/-/g,"+").replace(/_/g,"/"); const binary=atob(normalized+"=".repeat((4-normalized.length%4)%4)); return Uint8Array.from(binary,ch=>ch.charCodeAt(0)); }
@@ -207,7 +211,7 @@ async function resolveServiceRef(token:string,catalogue:string,country:string){
   data=JSON.parse(new TextDecoder().decode(plain));
  }catch{throw new Error("Choose a valid service.");}
  if(!data||data.country!==country||!data.code||!data.name||Date.now()-Number(data.issued)>30*60*1000)throw new Error("Please refresh the service list and choose again.");
- const expected=catalogue==="usa"&&country==="US"?"textverified":catalogue==="all"&&country==="US"?"fetchsms":catalogue==="all"?"virtualsms":"";
+ const expected=catalogue==="usa"&&country==="US"?"textverified":catalogue==="all"&&country==="US"?"fetchsms":catalogue==="all"?(data.provider==="smsbower"?"smsbower":"virtualsms"):"";
  if(!expected||data.provider!==expected)throw new Error("That service is not available in this destination.");
  return {provider:expected,code:String(data.code),name:String(data.name)};
 }
@@ -232,7 +236,7 @@ async function actionBuy(body:any,userId:string,req:Request){
  try{
   if(provider==="fetchsms")providerData=await fetchRequest("/verifications",{method:"POST",headers:{"Idempotency-Key":idempotencyKey},body:JSON.stringify({service:Number(serviceCode)})},true);
   else if(provider==="textverified")providerData=await tvRequest("/verifications",{method:"POST",headers:{"Idempotency-Key":idempotencyKey},body:JSON.stringify({serviceName,capability:"sms",numberType:"mobile",areaCodeSelectOption:[],carrierSelectOption:[]})});
-  else providerData=await virtualRequest("/customer/purchase",{method:"POST",body:JSON.stringify({service:serviceCode,country})});
+  else if(provider==="smsbower"){const [smsService,countryId]=serviceCode.split("|");const raw=await smsBowerRequest({action:"getNumberV2",service:smsService,country:countryId,maxPrice:q.providerUsd,providerIds:q.providerId});if(typeof raw==="string"){const parts=raw.split(":");if(parts[0]!=="ACCESS_NUMBER"||parts.length<3)throw new Error(raw.startsWith("NO_NUMBERS")?"No numbers available.":"SMSBower could not complete this request.");providerData={activationId:parts[1],phoneNumber:parts.slice(2).join(":")};}else providerData=raw;}else providerData=await virtualRequest("/customer/purchase",{method:"POST",body:JSON.stringify({service:serviceCode,country})});
  }catch(error){const status=num((error as any)?.status),kind=customerProviderError(error);if(kind){await refund(orderId,"failed",kind==="insufficient_funds"?"Provider has insufficient funds":"Provider service is unavailable or out of stock");return json({success:false,error:customerProviderErrorMessage(kind),refunded:true},409);}if(status>=400&&status<500){await refund(orderId,"failed","Provider rejected number purchase");return json({success:false,error:"We could not complete that request. Please try again or contact support.",refunded:true},409);}await updateOrder(orderId,{status:"unknown",provider_state:"provider_result_unconfirmed"});return json({success:true,pending:true,order_id:orderId,message:"Your number request is being checked. Please do not submit another purchase."},202);}
  let providerOrderId=getProviderId(providerData,provider),phone=getPhone(providerData),expiry=getExpiry(providerData);
  if(provider==="textverified"&&!providerOrderId){const selfLink=str(providerData?.href,providerData?.links?.self?.href);if(selfLink){try{const linkUrl=new URL(selfLink);if(linkUrl.hostname==="www.textverified.com"){const details=await tvRequest(linkUrl.pathname+linkUrl.search);providerOrderId=getProviderId(details,provider);phone=phone||getPhone(details);expiry=expiry||getExpiry(details);}}catch(error){console.error("Reservation detail lookup failed:",String(error));}}}
@@ -281,7 +285,7 @@ async function actionCancel(orderId:string,userId:string){
   if(!order.provider_order_id)return json({success:false,error:"The provider has not confirmed a number for this request yet. Please refresh or contact support."},409);
   const id=encodeURIComponent(order.provider_order_id);
   try{
-    if(order.provider_key==="fetchsms")await fetchRequest("/verifications/"+id+"/cancel",{method:"POST"},true);
+    if(order.provider_key==="fetchsms")await fetchRequest("/verifications/"+id+"/cancel",{method:"POST"},true);\n    else if(order.provider_key==="smsbower"){const result=await smsBowerRequest({action:"setStatus",status:8,id:order.provider_order_id});if(typeof result==="string"&&!/ACCESS_CANCEL|STATUS_CANCEL|ACCESS_RETRY|OK/i.test(result))throw new Error("Cancellation not confirmed.");}
     else if(order.provider_key==="textverified")await tvRequest("/verifications/"+id+"/cancel",{method:"POST"});
     else await virtualRequest("/customer/cancel/"+id,{method:"POST"});
   }catch(error){
@@ -328,12 +332,12 @@ Deno.serve(async(req:Request)=>{
       const pricing_mode=str(body?.pricing_mode).toLowerCase();
       const markup_percent=num(body?.markup_percent,-1);
       const fixed_price_kobo=Math.round(num(body?.fixed_price_ngn,0)*100);
-      if(!["fetchsms","textverified","virtualsms"].includes(provider_key))return json({success:false,error:"Choose a valid provider."},400);
+      if(!["fetchsms","textverified","virtualsms","smsbower"].includes(provider_key))return json({success:false,error:"Choose a valid provider."},400);
       if(!(country_iso==="*"||/^[A-Z0-9_-]{2,16}$/.test(country_iso)))return json({success:false,error:"Enter a valid country code or * for all countries."},400);
       if(!["markup","fixed"].includes(pricing_mode))return json({success:false,error:"Choose a valid pricing mode."},400);
       if(pricing_mode==="markup"&&(!Number.isFinite(markup_percent)||markup_percent<0||markup_percent>1000))return json({success:false,error:"Markup must be between 0 and 1000 percent."},400);
       if(pricing_mode==="fixed"&&fixed_price_kobo<=0)return json({success:false,error:"Enter a fixed customer price greater than zero."},400);
-      if((provider_key==="virtualsms"&&country_iso==="US")||(provider_key!=="virtualsms"&&country_iso!=="US"&&country_iso!=="*"))return json({success:false,error:"That provider cannot be assigned to the selected country."},400);
+      if((provider_key==="virtualsms"&&country_iso==="US")||(provider_key==="smsbower"&&country_iso==="US")||(provider_key!=="virtualsms"&&provider_key!=="smsbower"&&country_iso!=="US"&&country_iso!=="*"))return json({success:false,error:"That provider cannot be assigned to the selected country."},400);
       const payload={provider_key,country_iso,service_code,pricing_mode,markup_percent:pricing_mode==="markup"?markup_percent:0,fixed_price_kobo:pricing_mode==="fixed"?fixed_price_kobo:null,is_active:true,updated_at:new Date().toISOString()};
       const {data,error}=await admin.from("sparkle_sms_pricing_rules").upsert(payload,{onConflict:"provider_key,country_iso,service_code"}).select().single();
       if(error)throw new Error("The pricing rule could not be saved.");
