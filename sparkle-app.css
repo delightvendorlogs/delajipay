@@ -137,3 +137,10 @@ body:not(.bjverify-site) a{color:#76dff4}
 .search-picker-option{display:flex;align-items:center;gap:10px;min-height:42px}
 .search-picker-option::first-letter{font-size:18px}
 .catalogue-selected-service strong{font-size:15px}
+
+/* Real service-brand artwork in the BJVERIFY service selectors */
+.search-picker-option{display:flex;align-items:center;gap:11px;text-align:left}
+.search-picker-option>span{min-width:0;flex:1}
+.service-brand-icon{width:23px;height:23px;flex:0 0 23px;object-fit:contain;display:inline-block;vertical-align:middle}
+.service-brand-icon-fallback{padding:2px;color:#8bdff5}
+.catalogue-selected-service>div:first-child strong{display:flex;align-items:center;gap:10px}
