@@ -224,9 +224,9 @@ async function loadServices(country,name,mode=activeCatalog,countryId=""){
 }
 window.addEventListener("bjverify:catalog-request",event=>setCatalog(event.detail==="all"?"all":"usa"));
 window.addEventListener("bjverify:engine-request",event=>setEngine(event.detail==="2"?"2":"1"));
-countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>(c.key||c.code)+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{selectedCountry=c.code;selectedCountryName=c.name;if(countrySelect)countrySelect.value=c.key||c.code;loadServices(c.code,c.name,"all",c.id||"");});
+countryPicker=null;document.querySelector("#country-search")?.addEventListener("input",renderCountries);
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>(c.key||c.code)===countrySelect.value);if(country)loadServices(country.code,country.name,"all",country.id||"");});
-servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{selectedService=s; if(serviceSelect)serviceSelect.value=s.ref;renderSelectedService();},s=>s);
+servicePicker=null;document.querySelector("#service-search")?.addEventListener("input",()=>renderServices({services:serviceResults}));
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
 const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
 if(countrySelect){const params=new URLSearchParams(location.search);setCatalog(params.get("tab")==="all"?"all":"usa");if(params.get("tab")==="all"){const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();countryPicker?.render();}}}
