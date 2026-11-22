@@ -260,7 +260,7 @@ async function loadAdminPricingCatalog(){
   if(error)throw error;
   adminCountries=[{code:"*",name:"All countries (*)"},...(data?.countries||[])];
  }catch(error){console.warn("Admin country catalogue:",error);}
- pricingCountryPicker=mountSearchPicker("pricing-country-search","pricing-country-list",()=>adminCountries.filter(c=>c.code==="*"||(document.querySelector("#pricing-provider")?.value==="virtualsms"?c.code!=="US":c.code==="US")),c=>c.code+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{
+ pricingCountryPicker=mountSearchPicker("pricing-country-search","pricing-country-list",()=>adminCountries.filter(c=>c.code==="*"||(document.querySelector("#pricing-provider")?.value==="virtualsms"?c.code!=="US":document.querySelector("#pricing-provider")?.value==="smsbower"?true:c.code==="US")),c=>c.code+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{
   document.querySelector("#pricing-country").value=c.code;
   void loadAdminPricingServices();
  });
@@ -278,13 +278,13 @@ async function loadAdminPricingServices(){
  const country=document.querySelector("#pricing-country")?.value||"*";
  const input=document.querySelector("#pricing-service-search");if(!input)return;
  if(country==="*"){adminServices=[{code:"*",name:"All services (*)"}];pricingServicePicker?.render();document.querySelector("#pricing-service").value="*";pricingServicePicker?.setValue("All services (*)");return;}
- if((provider==="virtualsms"&&country==="US")||(provider!=="virtualsms"&&country!=="US")){
+ if((provider==="virtualsms"&&country==="US")||(provider!=="virtualsms"&&provider!=="smsbower"&&country!=="US")){
   adminServices=[{code:"*",name:"All services (*)"}];pricingServicePicker?.render();document.querySelector("#pricing-service").value="*";pricingServicePicker?.setValue("All services (*)");return;
  }
- const mode=provider==="textverified"?"usa":"all";
+ const mode=provider==="textverified"?"usa":"all";const engine=provider==="smsbower"?"2":"1";
  input.placeholder="Loading available services…";
  try{
-  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"admin-services",country,mode}});
+  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"admin-services",country,mode,engine}});
   if(error){let detail="";try{detail=(await error.context.clone().json())?.error||"";}catch{}throw new Error(detail||error.message);}
   adminServices=[{code:"*",name:"All services (*)"},...(data?.services||[]).map(s=>({code:String(s.code),name:s.name,icon:s.icon}))];
  }catch(error){adminServices=[{code:"*",name:"All services (*)"}];console.warn("Admin service catalogue:",error);}
@@ -297,7 +297,7 @@ async function loadAdminPricingServices(){
 document.querySelector("#pricing-provider")?.addEventListener("change",()=>{
  const provider=document.querySelector("#pricing-provider").value;
  if(provider==="virtualsms"&&document.querySelector("#pricing-country").value==="US"){document.querySelector("#pricing-country").value="*";pricingCountryPicker?.setValue("All countries (*)");}
- if(provider!=="virtualsms"&&document.querySelector("#pricing-country").value!=="US"){document.querySelector("#pricing-country").value="US";pricingCountryPicker?.setValue("🇺🇸 United States");}
+ if(provider!=="virtualsms"&&provider!=="smsbower"&&document.querySelector("#pricing-country").value!=="US"){document.querySelector("#pricing-country").value="US";pricingCountryPicker?.setValue("🇺🇸 United States");}
  void loadAdminPricingServices();
 });
 
