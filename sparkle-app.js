@@ -3,10 +3,15 @@ const supabase=createClient("https://fgkkzxfaxgkkcbkwbamx.supabase.co","sb_publi
 const menu=document.querySelector(".app-mobile-menu"),nav=document.querySelector(".app-nav");
 menu?.addEventListener("click",()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open));menu.textContent=open?"×":"☰";});
 nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{nav.classList.remove("open");menu?.setAttribute("aria-expanded","false");if(menu)menu.textContent="☰";}));
-const results=document.querySelector("#country-results"),providersBox=document.querySelector("#provider-options"),heading=document.querySelector("#provider-heading"),description=document.querySelector("#provider-description");
-let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="United States",activeCatalog="usa",catalogRequest=0;
+const countrySelect=document.querySelector("#country-select"),serviceSelect=document.querySelector("#service-select"),providersBox=document.querySelector("#provider-options"),heading=document.querySelector("#provider-heading"),description=document.querySelector("#provider-description");
+let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="United States",activeCatalog="usa",catalogRequest=0,selectedService=null;
 const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
 function note(parent,message){if(!parent)return;const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
+function fillSelect(select,items,placeholder,valueOf,labelOf,disabled=false){
+ if(!select)return;select.replaceChildren();const first=document.createElement("option");first.value="";first.textContent=placeholder;select.append(first);
+ for(const item of items){const option=document.createElement("option");option.value=valueOf(item);option.textContent=labelOf(item);select.append(option);}
+ select.disabled=disabled||!items.length;select.value="";
+}
 function setCatalog(mode){
  activeCatalog=mode==="all"?"all":"usa";
  document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===activeCatalog)));
@@ -20,60 +25,80 @@ function setCatalog(mode){
  }else{
   selectedCountry="";selectedCountryName="";
   if(heading)heading.textContent="Choose a country first";if(description)description.textContent="Select a country to browse its available services.";
-  note(providersBox,"Select a country to see available services.");renderCountries();
+  fillSelect(serviceSelect,[],"Choose a country first",x=>x.ref,x=>x.name,true);
+  note(providersBox,"Select a country to see available services.");
+  if(countrySelect)countrySelect.value="";
  }
 }
 function renderCountries(){
- if(!results)return;const q=(document.querySelector("#country-search")?.value||"").trim().toLowerCase();
+ if(!countrySelect)return;
+ const q=(document.querySelector("#country-search")?.value||"").trim().toLowerCase();
  const filtered=countries.filter(c=>(String(c.name||"")+" "+String(c.code||"")+" "+(c.aliases||[]).join(" ")).toLowerCase().includes(q));
- results.replaceChildren();if(!filtered.length){note(results,"No matching countries. Try another search.");return;}
- for(const country of filtered){const row=document.createElement("button");row.type="button";row.className="app-country-result country-choice";const name=document.createElement("strong"),meta=document.createElement("small");name.textContent=(country.flag?country.flag+" ":"")+country.name;meta.textContent=country.code==="US"?"United States":"Available destination";row.append(name,meta);row.addEventListener("click",()=>loadServices(country.code,country.name,"all"));results.append(row);}
+ const current=countrySelect.value;
+ fillSelect(countrySelect,filtered,"Select a country",c=>c.code,c=>(c.flag?c.flag+" ":"")+c.name,!countries.length);
+ if(filtered.some(c=>c.code===current))countrySelect.value=current;
+ if(!filtered.length){countrySelect.disabled=true;const option=document.createElement("option");option.textContent="No matching countries";option.value="";countrySelect.append(option);}
 }
 async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error)throw error;if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
 function renderServices(data){
- if(!providersBox)return;serviceResults=data.services||[];providersBox.replaceChildren();
- const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase(),services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
- if(!services.length){note(providersBox,q?"No services match this search.":"No services are currently available for this destination.");return;}
- const list=document.createElement("div");list.className="app-list";
- for(const service of services.slice(0,100)){
-  const item=document.createElement("article");item.className="app-list-row";const detail=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small"),actions=document.createElement("div");
-  title.textContent=service.name;meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" available":"Availability checked at purchase";detail.append(title,meta);actions.className="service-actions";
-  const quoteButton=document.createElement("button");quoteButton.type="button";quoteButton.className="app-button secondary";quoteButton.textContent="View price";quoteButton.disabled=service.available===false;const result=document.createElement("div");result.className="service-price-result";
-  quoteButton.addEventListener("click",async()=>{
-   quoteButton.disabled=true;quoteButton.textContent="Checking…";result.textContent="";
-   try{
-    const quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref});result.textContent="Price "+money(quote.customer_price_kobo);
-    const buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.textContent="Get this number";const idempotencyKey=crypto.randomUUID();
-    buy.addEventListener("click",async()=>{
-     if(!confirm("Get a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?"))return;
-     buy.disabled=true;buy.textContent="Processing…";
-     try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref},{"Idempotency-Key":idempotencyKey});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
-     catch(error){result.textContent=error.message||"The request could not be completed.";buy.disabled=false;buy.textContent="Try again";}
-    });actions.append(buy);
-   }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
-   finally{quoteButton.textContent="Refresh price";quoteButton.disabled=false;}
-  });
-  actions.append(quoteButton,result);item.append(detail,actions);list.append(item);
- }
- providersBox.append(list);
+ if(!providersBox)return;serviceResults=data.services||[];
+ const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
+ const services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
+ const previous=serviceSelect?.value||"";
+ fillSelect(serviceSelect,services,"Select a service",s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),!services.length);
+ if(services.some(s=>s.ref===previous))serviceSelect.value=previous;
+ if(!services.length){selectedService=null;note(providersBox,q?"No services match that search.":"No services are currently available for this destination.");return;}
+ if(serviceSelect.value){selectedService=services.find(s=>s.ref===serviceSelect.value)||null;renderSelectedService();}
+ else {selectedService=null;note(providersBox,"Choose a service from the dropdown above to view its price and availability.");}
+}
+function renderSelectedService(){
+ if(!providersBox||!selectedService)return;
+ const service=selectedService;providersBox.replaceChildren();
+ const card=document.createElement("div");card.className="catalogue-selected-service";
+ const details=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small");
+ title.textContent=service.name;
+ meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" numbers currently available":"Availability is checked again before purchase";
+ details.append(title,meta);
+ const actions=document.createElement("div");actions.className="catalogue-service-actions";
+ const quoteButton=document.createElement("button");quoteButton.type="button";quoteButton.className="app-button secondary";quoteButton.textContent="View price";quoteButton.disabled=service.available===false;
+ const result=document.createElement("div");result.className="service-price-result";
+ quoteButton.addEventListener("click",async()=>{
+  quoteButton.disabled=true;quoteButton.textContent="Checking…";result.textContent="";
+  try{
+   const quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref});
+   result.textContent="Price "+money(quote.customer_price_kobo);
+   let buy=actions.querySelector("[data-buy-service]");
+   if(!buy){buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.dataset.buyService="true";buy.textContent="Get this number";actions.append(buy);}
+   buy.onclick=async()=>{
+    if(!confirm("Get a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?"))return;
+    buy.disabled=true;buy.textContent="Processing…";
+    try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref},{"Idempotency-Key":crypto.randomUUID()});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
+    catch(error){result.textContent=error.message||"The request could not be completed.";buy.disabled=false;buy.textContent="Try again";}
+   };
+  }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
+  finally{quoteButton.textContent="Refresh price";quoteButton.disabled=false;}
+ });
+ actions.append(quoteButton,result);card.append(details,actions);providersBox.append(card);
 }
 async function loadCountries(){
- if(!results)return;note(results,"Loading available countries…");
+ if(!countrySelect)return;fillSelect(countrySelect,[],"Loading countries…",x=>x.code,x=>x.name,true);
  try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});if(error)throw error;countries=data?.countries||[];renderCountries();}
- catch(error){note(results,"We couldn't load the country list. Please try again shortly.");console.warn("Country catalogue:",error);}
+ catch(error){fillSelect(countrySelect,[],"Country list unavailable",x=>x.code,x=>x.name,true);console.warn("Country catalogue:",error);}
 }
 async function loadServices(country,name,mode=activeCatalog){
- if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;
+ if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;selectedService=null;
  if(heading)heading.textContent=mode==="usa"?"USA services":selectedCountryName+" services";if(description)description.textContent="Choose a service to see its customer price.";
- note(providersBox,"Loading available services…");
+ fillSelect(serviceSelect,[],"Loading services…",x=>x.ref,x=>x.name,true);note(providersBox,"Loading available services…");
  try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
- catch(error){if(request===catalogRequest)note(providersBox,"Services are temporarily unavailable. Please try again.");console.warn("Service catalogue:",error);}
+ catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
 document.querySelector("#country-search")?.addEventListener("input",renderCountries);
+countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>c.code===countrySelect.value);if(country)loadServices(country.code,country.name,"all");});
 document.querySelector("#service-search")?.addEventListener("input",()=>renderServices({services:serviceResults}));
+serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
 const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
-if(results){void loadCountries().then(()=>{const params=new URLSearchParams(location.search);if(params.get("tab")==="all"){setCatalog("all");const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();}}else setCatalog("usa");});}
+if(countrySelect){void loadCountries().then(()=>{const params=new URLSearchParams(location.search);if(params.get("tab")==="all"){setCatalog("all");const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();}}else setCatalog("usa");});}
 let inboxPollTimer=null,inboxPolling=false;
 async function loadSmsOrders(){
  const box=document.querySelector("#sms-orders");if(!box)return;
