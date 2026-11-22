@@ -48,9 +48,14 @@ function rows(data: any): any[] {
   return [];
 }
 function normalizeCountry(item: any) {
-  const code = str(item?.code, item?.country_code, item?.countryCode, item?.country_iso, item?.countryIso, item?.iso2, item?.iso, item?.short_code, item?.value).toUpperCase();
-  const name = str(item?.name, item?.country_name, item?.countryName, item?.country, item?.label, item?.title);
-  return code && name ? { code, name, flag: str(item?.flag, item?.emoji), available: item?.available !== false } : null;
+  const code = (typeof item === "string" ? item : str(item?.code, item?.country_code, item?.countryCode, item?.country_iso, item?.countryIso, item?.country_iso_code, item?.iso_code, item?.isoCode, item?.iso2, item?.iso, item?.alpha2, item?.short_code, item?.value)).toUpperCase();
+  let name = typeof item === "string" ? "" : str(item?.name, item?.country_name, item?.countryName, item?.country, item?.english_name, item?.eng, item?.label, item?.title);
+  if (!name && /^[A-Z]{2}$/.test(code)) {
+    try { name = new Intl.DisplayNames(["en"], { type:"region" }).of(code) || ""; } catch {}
+  }
+  if (!/^[A-Z]{2}$/.test(code) || !name || name === code) return null;
+  const flag = /^[A-Z]{2}$/.test(code) ? String.fromCodePoint(...[...code].map((char:string)=>127397+char.charCodeAt(0))) : "🌍";
+  return { code, name, flag, available: item?.available !== false };
 }
 function cleanServiceName(value: string) {
   return value.replace(/\b(?:virtual\s*sms|virtualsms|fetch\s*sms|fetchsms|text\s*verified|textverified)\b/gi, "").replace(/[|·•:–—-]{2,}/g, " ").replace(/\s{2,}/g, " ").trim();
@@ -148,7 +153,9 @@ async function countries() {
   try { const result = await virtualSmsRequest("/customer/countries"); international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US" && !/united states|\busa\b/i.test(x.name))); } catch (error) { console.error("VirtualSMS country catalogue failed:", error instanceof Error ? error.message : String(error)); warnings.push("VirtualSMS country list temporarily unavailable."); }
   const usa = { code: "US", name: "United States", flag: "🇺🇸", available: true, aliases: ["USA", "US"] };
   const deduped = new Map<string, any>(); for (const country of international) deduped.set(country.code, country);
-  return { success: true, countries: [usa, ...Array.from(deduped.values()).sort((a,b)=>a.name.localeCompare(b.name))], warnings };
+  const list = [usa, ...Array.from(deduped.values()).sort((a,b)=>a.name.localeCompare(b.name))];
+  console.log("BJVERIFY country catalogue loaded:", { count:list.length, international:deduped.size, warnings });
+  return { success: true, countries: list, warnings };
 }
 async function services(country: string, mode: string, includeProviderCode = false) {
   const code = country.trim().toUpperCase(), catalogue = mode.trim().toLowerCase();
