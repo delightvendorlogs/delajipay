@@ -107,3 +107,15 @@ body:not(.bjverify-site) a{color:#76dff4}
 
 /* BJVERIFY identity polish */
 .app-brand-mark{border:1px solid #8de9fb;background:radial-gradient(circle at 28% 20%,#285b82,#10213d 72%);box-shadow:0 0 0 3px #38bde812,0 8px 25px #168acb45;transition:transform .28s ease,box-shadow .28s ease}.app-brand:hover .app-brand-mark{transform:rotate(7deg) scale(1.06);box-shadow:0 0 0 4px #38bde81c,0 10px 30px #168acb70}.app-brand-word{font-weight:850;letter-spacing:-.9px;text-shadow:0 0 18px #5acff51a}
+
+/* Compact dropdown selectors for the number catalogue */
+.catalogue-select-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:end}
+.catalogue-select-wrap .app-field{min-width:0;margin:0 0 14px}
+.catalogue-select-wrap select{appearance:auto;cursor:pointer;padding:0 13px;font-size:12px;font-weight:650}
+.catalogue-choice-panel{margin-top:13px}
+.catalogue-selected-service{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px;border:1px solid #355777;border-radius:12px;background:linear-gradient(135deg,#142d4b,#10213a)}
+.catalogue-selected-service strong{display:block;font:750 13px Manrope;color:#f0f7ff}
+.catalogue-selected-service small{display:block;margin-top:5px;color:#9eb4cc;font-size:10px;line-height:1.5}
+.catalogue-service-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.catalogue-service-actions .app-button{white-space:nowrap}
+@media(max-width:560px){.catalogue-select-wrap{grid-template-columns:1fr;gap:0}.catalogue-selected-service{align-items:stretch;flex-direction:column}.catalogue-service-actions{justify-content:flex-start}.catalogue-service-actions .app-button{flex:1}}
