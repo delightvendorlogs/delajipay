@@ -16,7 +16,7 @@
  const engines=document.getElementById("all-country-engines");
  function chooseCatalog(mode){
   const all=mode==="all";
-  tabs.forEach(tab=>tab.setAttribute("aria-selected",String((tab.dataset.catalogTab==="all")===all));
+  tabs.forEach(tab=>tab.setAttribute("aria-selected",String((tab.dataset.catalogTab==="all")===all)));
   if(picker){picker.hidden=!all;picker.style.display=all?"block":"none";}
   if(usa){usa.hidden=all;usa.style.display=all?"none":"block";}
   if(engines){engines.hidden=!all;engines.style.display=all?"flex":"none";}
