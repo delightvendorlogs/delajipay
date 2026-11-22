@@ -191,8 +191,8 @@ async function loadServices(country,name,mode=activeCatalog,countryId=""){
  try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode,engine:activeEngine,country_id:countryId}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
  catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
-document.addEventListener("click",event=>{const button=event.target.closest("[data-catalog-tab]");if(!button)return;event.preventDefault();setCatalog(button.dataset.catalogTab);});
-document.addEventListener("click",event=>{const button=event.target.closest("[data-engine-tab]");if(!button)return;event.preventDefault();setEngine(button.dataset.engineTab);});
+window.addEventListener("bjverify:catalog-request",event=>setCatalog(event.detail==="all"?"all":"usa"));
+window.addEventListener("bjverify:engine-request",event=>setEngine(event.detail==="2"?"2":"1"));
 countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>(c.key||c.code)+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{if(countrySelect){countrySelect.value=c.key||c.code;countrySelect.dispatchEvent(new Event("change"));}});
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>(c.key||c.code)===countrySelect.value);if(country)loadServices(country.code,country.name,"all",country.id||"");});
 servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}},s=>s);
