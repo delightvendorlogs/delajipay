@@ -131,3 +131,9 @@ body:not(.bjverify-site) a{color:#76dff4}
 
 #all-country-picker .catalogue-select-wrap,.service-select-wrap{grid-template-columns:minmax(0,1fr)}
 #all-country-picker .catalogue-select-wrap .app-field,.service-select-wrap .app-field{width:100%}
+
+/* BJVERIFY country and service dropdown refinements */
+.search-picker-list{max-height:336px}
+.search-picker-option{display:flex;align-items:center;gap:10px;min-height:42px}
+.search-picker-option::first-letter{font-size:18px}
+.catalogue-selected-service strong{font-size:15px}
