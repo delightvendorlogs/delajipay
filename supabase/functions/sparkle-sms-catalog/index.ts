@@ -7,7 +7,8 @@ const SERVICE_REF_SECRET = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const VIRTUALSMS_API_KEY = Deno.env.get("VIRTUALSMS_API_KEY") ?? "";
 const FETCHSMS_API_KEY = Deno.env.get("FETCHSMS_API_KEY") ?? "";
 const TEXTVERIFIED_API_USERNAME = Deno.env.get("TEXTVERIFIED_API_USERNAME") ?? "";
-const TEXTVERIFIED_API_KEY = Deno.env.get("TEXTVERIFIED_API_KEY") ?? "";\nconst SMSBOWER_API_KEY = Deno.env.get("SMSBOWER_API_KEY") ?? "";
+const TEXTVERIFIED_API_KEY = Deno.env.get("TEXTVERIFIED_API_KEY") ?? "";
+const SMSBOWER_API_KEY = Deno.env.get("SMSBOWER_API_KEY") ?? "";
 const SMSBOWER_URL = "https://smsbower.page/stubs/handler_api.php";
 async function smsBowerRequest(params:Record<string,string|number>){
  if(!SMSBOWER_API_KEY)throw new Error("SMSBower access is not configured.");
@@ -163,7 +164,8 @@ async function serviceRef(provider: string, country: string, code: string, name:
   const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ provider, country, code, name, issued: Date.now() })));
   return base64Url(iv) + "." + base64Url(new Uint8Array(encrypted));
 }
-async function countries(engine = "1") {\n  if (engine === "2") { const raw=await smsBowerRequest({action:"getCountries"}); const list=smsRows(raw).map(smsCountry).filter(Boolean); const seen=new Set(); return {success:true,countries:list.filter((x:any)=>{if(seen.has(x.code))return false;seen.add(x.code);return true;}).sort((a:any,b:any)=>a.name.localeCompare(b.name)),warnings:[]}; }
+async function countries(engine = "1") {
+  if (engine === "2") { const raw=await smsBowerRequest({action:"getCountries"}); const list=smsRows(raw).map(smsCountry).filter(Boolean); const seen=new Set(); return {success:true,countries:list.filter((x:any)=>{if(seen.has(x.code))return false;seen.add(x.code);return true;}).sort((a:any,b:any)=>a.name.localeCompare(b.name)),warnings:[]}; }
   const warnings: string[] = []; let international: any[] = [];
   try {
     const result = await virtualSmsRequest("/customer/countries");
