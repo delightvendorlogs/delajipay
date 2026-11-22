@@ -48,14 +48,15 @@ function rows(data: any): any[] {
   return [];
 }
 function normalizeCountry(item: any) {
-  const code = (typeof item === "string" ? item : str(item?.code, item?.country_code, item?.countryCode, item?.country_iso, item?.countryIso, item?.country_iso_code, item?.iso_code, item?.isoCode, item?.iso2, item?.iso, item?.alpha2, item?.short_code, item?.value)).toUpperCase();
-  let name = typeof item === "string" ? "" : str(item?.name, item?.country_name, item?.countryName, item?.country, item?.english_name, item?.eng, item?.label, item?.title);
+  const code = (typeof item === "string" ? item : str(item?.country_id, item?.countryId, item?.code, item?.country_code, item?.countryCode, item?.country_iso, item?.countryIso, item?.country_iso_code, item?.iso_code, item?.isoCode, item?.iso2, item?.iso, item?.alpha2, item?.short_code, item?.value)).toUpperCase();
+  let name = typeof item === "string" ? "" : str(item?.country_name, item?.countryName, item?.name, item?.country, item?.english_name, item?.eng, item?.label, item?.title);
   if (!name && /^[A-Z]{2}$/.test(code)) {
     try { name = new Intl.DisplayNames(["en"], { type:"region" }).of(code) || ""; } catch {}
   }
   if (!/^[A-Z]{2}$/.test(code) || !name || name === code) return null;
   const flag = /^[A-Z]{2}$/.test(code) ? String.fromCodePoint(...[...code].map((char:string)=>127397+char.charCodeAt(0))) : "🌍";
-  return { code, name, flag, available: item?.available !== false };
+  const services = Array.isArray(item?.services) ? item.services.map((value:any)=>String(value).trim()).filter(Boolean) : str(item?.services).split(",").map((value:string)=>value.trim()).filter(Boolean);
+  return { code, name, flag, services, available: item?.available !== false };
 }
 function cleanServiceName(value: string) {
   return value.replace(/\b(?:virtual\s*sms|virtualsms|fetch\s*sms|fetchsms|text\s*verified|textverified)\b/gi, "").replace(/[|·•:–—-]{2,}/g, " ").replace(/\s{2,}/g, " ").trim();
@@ -66,6 +67,7 @@ function normalizeService(item: any) {
   if (!code || !name) return null;
   return {
     code, name,
+    icon: str(item?.icon_url, item?.iconUrl, item?.icon, item?.logo_url, item?.logoUrl, item?.logo),
     available: item?.available !== false && (item?.short_available === undefined || Number(item.short_available) > 0),
     available_count: Number.isFinite(Number(item?.short_available ?? item?.available_count ?? item?.stock ?? item?.quantity)) ? Number(item.short_available ?? item.available_count ?? item.stock ?? item.quantity) : null,
     price_hint: Number.isFinite(Number(item?.price_cents ?? item?.price)) ? Number(item.price_cents ?? item.price) / 100 : null,
@@ -150,7 +152,15 @@ async function serviceRef(provider: string, country: string, code: string, name:
 }
 async function countries() {
   const warnings: string[] = []; let international: any[] = [];
-  try { const result = await virtualSmsRequest("/customer/countries"); international = rows(result).map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US" && !/united states|\busa\b/i.test(x.name))); } catch (error) { console.error("VirtualSMS country catalogue failed:", error instanceof Error ? error.message : String(error)); warnings.push("VirtualSMS country list temporarily unavailable."); }
+  try {
+    const result = await virtualSmsRequest("/customer/countries");
+    const rawCountries = rows(result);
+    international = rawCountries.map(normalizeCountry).filter((x): x is NonNullable<typeof x> => Boolean(x && x.code !== "US" && !/united states|\\busa\\b/i.test(x.name)));
+    if (!international.length) {
+      warnings.push("VirtualSMS returned no recognisable international countries. Please check its live API response.");
+      console.warn("VirtualSMS country response shape:", { keys:Object.keys(result || {}), countryRows:rawCountries.length, firstCountry:rawCountries[0] ? Object.keys(rawCountries[0]) : [] });
+    }
+  } catch (error) { console.error("VirtualSMS country catalogue failed:", error instanceof Error ? error.message : String(error)); warnings.push("VirtualSMS country list temporarily unavailable."); }
   const usa = { code: "US", name: "United States", flag: "🇺🇸", available: true, aliases: ["USA", "US"] };
   const deduped = new Map<string, any>(); for (const country of international) deduped.set(country.code, country);
   const list = [usa, ...Array.from(deduped.values()).sort((a,b)=>a.name.localeCompare(b.name))];
@@ -163,11 +173,18 @@ async function services(country: string, mode: string, includeProviderCode = fal
   let provider: string, data: any;
   if (catalogue === "usa" && code === "US") { provider = "textverified"; data = await textVerifiedRequest("/services?numberType=mobile&reservationType=verification"); }
   else if (catalogue === "all" && code === "US") { provider = "fetchsms"; data = await fetchSmsRequest("/services"); }
-  else if (catalogue === "all" && code !== "US") { provider = "virtualsms"; data = await virtualSmsRequest("/customer/services?country=" + encodeURIComponent(code)); }
+  else if (catalogue === "all" && code !== "US") {
+    provider = "virtualsms";
+    const [countryData, serviceData] = await Promise.all([virtualSmsRequest("/customer/countries"),virtualSmsRequest("/customer/services")]);
+    const countryRow = rows(countryData).map(normalizeCountry).find((item:any)=>item?.code===code);
+    if (!countryRow) throw new Error("VirtualSMS does not currently list this country.");
+    const supportedCodes = new Set((countryRow.services || []).map((value:string)=>value.toLowerCase()));
+    data = { services: rows(serviceData).filter((item:any)=>supportedCodes.has(str(item?.service_id,item?.serviceId,item?.service_code,item?.code,item?.id).toLowerCase())) };
+  }
   else throw new Error("Choose a valid number destination.");
   const normalized = rows(data).map(normalizeService).filter(Boolean);
   const available = provider === "fetchsms" ? normalized.filter((item:any)=>item.available) : normalized;
-  const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,available:item.available,available_count:item.available_count,...(includeProviderCode?{code:item.code}: {})})));
+  const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,icon:item.icon,available:item.available,available_count:item.available_count,...(includeProviderCode?{code:item.code}: {})})));
   return { success:true, services:publicServices };
 }
 Deno.serve(async (req: Request) => {
