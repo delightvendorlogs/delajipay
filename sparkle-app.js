@@ -8,8 +8,17 @@ const countrySelect=document.querySelector("#country-select"),serviceSelect=docu
 let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="United States",activeCatalog="usa",catalogRequest=0,selectedService=null;
 let activeEngine="1";
 document.querySelectorAll("[data-engine-tab]").forEach(button=>button.addEventListener("click",()=>{
+ if(activeEngine===button.dataset.engineTab)return;
  activeEngine=button.dataset.engineTab;
  document.querySelectorAll("[data-engine-tab]").forEach(tab=>tab.setAttribute("aria-selected",String(tab.dataset.engineTab===activeEngine)));
+ if(activeCatalog==="all"){
+  catalogRequest++;selectedCountry="";selectedCountryName="";selectedService=null;
+  const search=document.querySelector("#country-search");if(search)search.value="";
+  countryPicker?.clear();servicePicker?.clear();
+  fillSelect(serviceSelect,[],"Choose a country first",x=>x.ref,x=>x.name,true);
+  note(providersBox,"Select a country to see available services.");
+  void loadCountries();
+ }
 }));
 
 const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
