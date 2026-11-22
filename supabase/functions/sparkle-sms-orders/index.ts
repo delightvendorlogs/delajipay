@@ -113,7 +113,7 @@ async function quote(provider:string,country:string,service:string,serviceName:s
   if(["fetchsms","textverified"].includes(provider)&&country!=="US")throw new Error("This provider only supplies United States numbers.");
   let providerUsd=0,available=true,availabilityCount:number|null=null;
   if(provider==="fetchsms"){
-    if(!/^\d+$/.test(service)||Number(service)===1)throw new Error("This USA service is not available for purchase. Please choose another service.");
+    if(!/^\d+$/.test(service))throw new Error("This USA service is not available for purchase. Please choose another service.");
     const [q,catalog,fx]=await Promise.all([
       fetchRequest("/services/quote?service="+encodeURIComponent(service)+"&mode=short",{},false),
       fetchRequest("/services",{},false),
