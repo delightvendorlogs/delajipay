@@ -164,7 +164,7 @@ function renderSelectedService(){
    let poolPicker=actions.querySelector("[data-pool-picker]");if(poolPicker)poolPicker.remove();
    if(activeEngine==="2"&&Array.isArray(quote.pools)&&quote.pools.length){
     poolPicker=document.createElement("select");poolPicker.dataset.poolPicker="true";poolPicker.className="app-select";poolPicker.setAttribute("aria-label","Choose an available pool");
-    quote.pools.forEach((pool,index)=>{const option=document.createElement("option");option.value=pool.id;option.textContent=pool.label+" · "+money(Math.ceil(pool.providerUsd*quote.exchange_rate*100*(1+Number(quote.markup_percent||100)/100)))+" · "+pool.stock+" available";poolPicker.append(option);});
+    quote.pools.forEach((pool,index)=>{const option=document.createElement("option");option.value=pool.id;option.textContent=pool.label+" · "+money(pool.customerPriceKobo)+" · "+pool.stock+" available";poolPicker.append(option);});
     selectedPoolId=quote.selected_pool_id||quote.pools[0].id;poolPicker.value=selectedPoolId;actions.insertBefore(poolPicker,result);
     poolPicker.addEventListener("change",async()=>{selectedPoolId=poolPicker.value;quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,pool_id:selectedPoolId,engine:activeEngine});result.textContent="Price "+money(quote.customer_price_kobo);});
    }
