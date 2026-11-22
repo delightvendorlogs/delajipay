@@ -6,6 +6,12 @@ menu?.addEventListener("click",()=>{const open=nav.classList.toggle("open");menu
 nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{nav.classList.remove("open");menu?.setAttribute("aria-expanded","false");if(menu)menu.textContent="☰";}));
 const countrySelect=document.querySelector("#country-select"),serviceSelect=document.querySelector("#service-select"),providersBox=document.querySelector("#provider-options"),heading=document.querySelector("#provider-heading"),description=document.querySelector("#provider-description");
 let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="United States",activeCatalog="usa",catalogRequest=0,selectedService=null;
+let activeEngine="1";
+document.querySelectorAll("[data-engine-tab]").forEach(button=>button.addEventListener("click",()=>{
+ activeEngine=button.dataset.engineTab;
+ document.querySelectorAll("[data-engine-tab]").forEach(tab=>tab.setAttribute("aria-selected",String(tab.dataset.engineTab===activeEngine)));
+}));
+
 const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
 function note(parent,message){if(!parent)return;const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
 function fillSelect(select,items,placeholder,valueOf,labelOf,disabled=false){
