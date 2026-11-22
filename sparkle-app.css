@@ -119,3 +119,12 @@ body:not(.bjverify-site) a{color:#76dff4}
 .catalogue-service-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
 .catalogue-service-actions .app-button{white-space:nowrap}
 @media(max-width:560px){.catalogue-select-wrap{grid-template-columns:1fr;gap:0}.catalogue-selected-service{align-items:stretch;flex-direction:column}.catalogue-service-actions{justify-content:flex-start}.catalogue-service-actions .app-button{flex:1}}
+
+/* Combined searchable dropdowns */
+.search-picker{position:relative;width:100%}
+.search-picker input{width:100%;min-height:46px;border:1px solid #35516f;border-radius:10px;background:#0b1a2d;color:#eef6ff;padding:0 13px;font:600 13px Manrope, sans-serif;outline:none}
+.search-picker input:focus{border-color:#66d8ee;box-shadow:0 0 0 3px #55cde51c}
+.search-picker-list{position:absolute;z-index:50;top:calc(100% + 7px);left:0;right:0;max-height:286px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #355777;border-radius:12px;background:#0b192b;box-shadow:0 16px 38px #0008;padding:5px}
+.search-picker-option{display:block;width:100%;min-height:38px;padding:9px 11px;border:0;border-radius:7px;background:transparent;color:#e7f2ff;text-align:left;font:550 12px Manrope,sans-serif;cursor:pointer}
+.search-picker-option:hover,.search-picker-option:focus{background:#183654;outline:none;color:#a9efff}
+.search-picker-empty{padding:13px;color:#91a8c2;font-size:12px}
