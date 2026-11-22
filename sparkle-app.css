@@ -167,3 +167,10 @@ body:not(.bjverify-site) a{color:#76dff4}
 #all-country-picker[hidden],#usa-intro[hidden],#all-country-engines[hidden]{display:none!important}
 #all-country-picker:not([hidden]){display:block!important}
 @media(max-width:560px){.catalogue-tabs{gap:24px}.catalogue-tab{font-size:15px}}
+
+/* Reliable searchable dropdown visibility and touch interaction */
+.search-picker{position:relative;z-index:30;isolation:isolate}
+.search-picker-list{display:none;position:absolute;z-index:9999;pointer-events:auto;touch-action:pan-y}
+.search-picker-list:not([hidden]){display:block!important}
+.search-picker-list[hidden]{display:none!important}
+.search-picker-option{position:relative;z-index:1;touch-action:manipulation}
