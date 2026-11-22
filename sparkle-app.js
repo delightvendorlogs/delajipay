@@ -5,7 +5,7 @@ const menu=document.querySelector(".app-mobile-menu"),nav=document.querySelector
 menu?.addEventListener("click",()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open));menu.textContent=open?"×":"☰";});
 nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{nav.classList.remove("open");menu?.setAttribute("aria-expanded","false");if(menu)menu.textContent="☰";}));
 const countrySelect=document.querySelector("#country-select"),serviceSelect=document.querySelector("#service-select"),providersBox=document.querySelector("#provider-options"),heading=document.querySelector("#provider-heading"),description=document.querySelector("#provider-description");
-let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="United States",activeCatalog="usa",catalogRequest=0,selectedService=null;
+let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="United States",activeCatalog="usa",catalogRequest=0,countryRequest=0,selectedService=null;
 let activeEngine="1";
 
 const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
@@ -184,9 +184,23 @@ function renderSelectedService(){
  if(activeEngine==="2"){quoteButton.hidden=true;queueMicrotask(()=>quoteButton.click());}actions.append(quoteButton,result);card.append(details,actions);providersBox.append(card);
 }
 async function loadCountries(){
- if(!countrySelect)return;fillSelect(countrySelect,[],"Loading countries…",x=>x.code,x=>x.name,true);
- try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries",engine:activeEngine}});if(error)throw error;countries=data?.countries||[];renderCountries();const status=document.querySelector("#country-catalogue-status");if(status){status.hidden=false;status.textContent=data?.warnings?.length?data.warnings.join(" "):countries.length<=1?"Only one destination is currently being returned by the provider. More countries will appear when its live country inventory is available.":countries.length+" destinations available.";}}
- catch(error){fillSelect(countrySelect,[],"Country list unavailable",x=>x.code,x=>x.name,true);console.warn("Country catalogue:",error);}
+ if(!countrySelect)return;
+ const request=++countryRequest,engine=activeEngine,status=document.querySelector("#country-catalogue-status");
+ countries=[];fillSelect(countrySelect,[],"Loading countries…",x=>x.code,x=>x.name,true);countryPicker?.render();
+ if(status){status.hidden=false;status.textContent="Loading available destinations…";}
+ try{
+  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries",engine}});
+  if(error)throw error;
+  if(request!==countryRequest||engine!==activeEngine)return;
+  countries=Array.isArray(data?.countries)?data.countries:[];
+  renderCountries();
+  if(status)status.textContent=data?.warnings?.length?data.warnings.join(" "):countries.length+" destinations available.";
+ }catch(error){
+  if(request!==countryRequest||engine!==activeEngine)return;
+  countries=[];renderCountries();
+  if(status)status.textContent="We couldn't load destinations just now. Tap the country field again to retry.";
+  console.warn("Country catalogue:",error);
+ }
 }
 async function loadServices(country,name,mode=activeCatalog,countryId=""){
  if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;selectedService=null;servicePicker?.clear();
