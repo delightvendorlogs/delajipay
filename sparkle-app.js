@@ -14,7 +14,7 @@ function fillSelect(select,items,placeholder,valueOf,labelOf,disabled=false){
  select.disabled=disabled||!items.length;select.value="";
 }
 
-function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick){
+function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick,getIcon=null){
  const input=document.getElementById(inputId),list=document.getElementById(listId);if(!input||!list)return;
  let open=false,selectedLabel="";
  const close=()=>{open=false;list.hidden=true;input.setAttribute("aria-expanded","false");if(selectedLabel)input.value=selectedLabel;};
@@ -26,7 +26,7 @@ function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick){
   list.replaceChildren();
   if(!filtered.length){const empty=document.createElement("div");empty.className="search-picker-empty";empty.textContent="No matching options";list.append(empty);}
   for(const entry of filtered){
-   const option=document.createElement("button");option.type="button";option.className="search-picker-option";option.setAttribute("role","option");option.textContent=entry.label;
+   const option=document.createElement("button");option.type="button";option.className="search-picker-option";option.setAttribute("role","option");if(getIcon){appendServiceIcon(option,getIcon(entry.item));const label=document.createElement("span");label.textContent=entry.label;option.append(label);}else option.textContent=entry.label;
    option.addEventListener("click",()=>{input.value=entry.label;selectedLabel=entry.label;onPick(entry.item);close();});
    list.append(option);
   }
@@ -40,7 +40,20 @@ function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick){
  return {render,close,setValue(value){input.value=value||"";selectedLabel=input.value;},clear(){input.value="";selectedLabel="";close();}};
 }
 function countryFlag(code){const value=String(code||"").toUpperCase();return /^[A-Z]{2}$/.test(value)?String.fromCodePoint(...[...value].map(char=>127397+char.charCodeAt(0))):"🌍";}
-function serviceIcon(name){const value=String(name||"").toLowerCase();const icons=[[/whatsapp/,"🟢"],[/telegram/,"✈️"],[/google|gmail|youtube/,"🔴"],[/instagram/,"📸"],[/facebook|meta/,"🔵"],[/tiktok/,"🎵"],[/twitter|\bx\b/,"𝕏"],[/discord/,"🎮"],[/microsoft|outlook/,"🪟"],[/uber/,"🚕"],[/amazon/,"📦"],[/apple|icloud/,"🍎"],[/snapchat/,"👻"],[/reddit/,"👽"],[/binance|crypto/,"🟡"],[/steam/,"🎮"],[/linkedin/,"💼"],[/paypal/,"💳"],[/tinder/,"❤️"],[/viber/,"📞"]];return icons.find(([pattern])=>pattern.test(value))?.[1]||"📱";}
+function serviceIconUrl(service){
+ const name=String(service?.name||"").toLowerCase(),supplied=String(service?.icon||"").trim();
+ if(/^https:\/\//i.test(supplied))return supplied;
+ const brands=[[/whatsapp/,"whatsapp"],[/telegram/,"telegram"],[/instagram/,"instagram"],[/facebook|meta/,"facebook"],[/tiktok/,"tiktok"],[/youtube/,"youtube"],[/google|gmail/,"google"],[/discord/,"discord"],[/microsoft|outlook|hotmail/,"microsoft"],[/uber/,"uber"],[/amazon/,"amazon"],[/apple|icloud/,"apple"],[/snapchat/,"snapchat"],[/reddit/,"reddit"],[/binance/,"binance"],[/steam/,"steam"],[/linkedin/,"linkedin"],[/paypal/,"paypal"],[/tinder/,"tinder"],[/viber/,"viber"],[/signal/,"signal"],[/netflix/,"netflix"],[/twitter|^x$/,"x"]];
+ const slug=brands.find(([pattern])=>pattern.test(name))?.[1];
+ return slug?"https://cdn.simpleicons.org/"+slug:"";
+}
+function appendServiceIcon(parent,service){
+ const src=serviceIconUrl(service);
+ if(src){const img=document.createElement("img");img.className="service-brand-icon";img.src=src;img.alt="";img.loading="lazy";img.referrerPolicy="no-referrer";img.onerror=()=>img.remove();parent.append(img);return;}
+ const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 24 24");svg.setAttribute("class","service-brand-icon service-brand-icon-fallback");svg.setAttribute("aria-hidden","true");
+ const rect=document.createElementNS("http://www.w3.org/2000/svg","rect");rect.setAttribute("x","6");rect.setAttribute("y","2.5");rect.setAttribute("width","12");rect.setAttribute("height","19");rect.setAttribute("rx","2.5");rect.setAttribute("fill","none");rect.setAttribute("stroke","currentColor");rect.setAttribute("stroke-width","1.8");
+ const line=document.createElementNS("http://www.w3.org/2000/svg","path");line.setAttribute("d","M10 18h4");line.setAttribute("stroke","currentColor");line.setAttribute("stroke-width","1.6");line.setAttribute("stroke-linecap","round");svg.append(rect,line);parent.append(svg);
+}
 function countryAliases(country){
  const code=String(country.code||"").toUpperCase(),name=String(country.name||"");
  return [name,code,...(country.aliases||[]),...(code==="GB"?["UK","United Kingdom","Britain","Great Britain"]:[]),...(code==="US"?["USA","US","United States","United States of America"]:[])].join(" ").toLowerCase();
@@ -81,7 +94,7 @@ function renderServices(data){
  const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
  const services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
  const previous=serviceSelect?.value||"";
- fillSelect(serviceSelect,services,"Select a service",s=>s.ref,s=>serviceIcon(s.name)+"  "+s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),!services.length);
+ fillSelect(serviceSelect,services,"Select a service",s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),!services.length);
  if(services.some(s=>s.ref===previous))serviceSelect.value=previous;
  servicePicker?.render();
  if(!services.length){selectedService=null;note(providersBox,q?"No services match that search.":"No services are currently available for this destination.");return;}
@@ -93,7 +106,7 @@ function renderSelectedService(){
  const service=selectedService;providersBox.replaceChildren();
  const card=document.createElement("div");card.className="catalogue-selected-service";
  const details=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small");
- title.textContent=serviceIcon(service.name)+"  "+service.name;
+ appendServiceIcon(title,service);title.append(document.createTextNode(service.name));
  meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" numbers currently available":"Availability is checked again before purchase";
  details.append(title,meta);
  const actions=document.createElement("div");actions.className="catalogue-service-actions";
@@ -132,7 +145,7 @@ async function loadServices(country,name,mode=activeCatalog){
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
 countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>c.code+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{if(countrySelect){countrySelect.value=c.code;countrySelect.dispatchEvent(new Event("change"));}});
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>c.code===countrySelect.value);if(country)loadServices(country.code,country.name,"all");});
-servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref, s=>serviceIcon(s.name)+"  "+s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}});
+servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}},s=>s);
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
 const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
 if(countrySelect){void loadCountries().then(()=>{const params=new URLSearchParams(location.search);if(params.get("tab")==="all"){setCatalog("all");const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();countryPicker?.render();}}else setCatalog("usa");});}
@@ -200,9 +213,9 @@ async function loadAdminPricingCatalog(){
   document.querySelector("#pricing-country").value=c.code;
   void loadAdminPricingServices();
  });
- pricingServicePicker=mountSearchPicker("pricing-service-search","pricing-service-list",()=>adminServices,s=>s.code,s=>s.code==="*"?"📱 "+s.name:serviceIcon(s.name)+"  "+s.name,s=>{
+ pricingServicePicker=mountSearchPicker("pricing-service-search","pricing-service-list",()=>adminServices,s=>s.code,s=>s.name,s=>{
   document.querySelector("#pricing-service").value=s.code;
- });
+ },s=>s.code==="*"?null:s);
  const countryValue=document.querySelector("#pricing-country").value||"*";
  const initial=adminCountries.find(c=>c.code===countryValue)||adminCountries[0];
  document.querySelector("#pricing-country").value=initial.code;
@@ -222,7 +235,7 @@ async function loadAdminPricingServices(){
  try{
   const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"admin-services",country,mode}});
   if(error){let detail="";try{detail=(await error.context.clone().json())?.error||"";}catch{}throw new Error(detail||error.message);}
-  adminServices=[{code:"*",name:"All services (*)"},...(data?.services||[]).map(s=>({code:String(s.code),name:s.name}))];
+  adminServices=[{code:"*",name:"All services (*)"},...(data?.services||[]).map(s=>({code:String(s.code),name:s.name,icon:s.icon}))];
  }catch(error){adminServices=[{code:"*",name:"All services (*)"}];console.warn("Admin service catalogue:",error);}
  input.placeholder="Choose or search service…";
  pricingServicePicker?.render();
