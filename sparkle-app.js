@@ -47,17 +47,17 @@ function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick,getI
    const lbl=document.createElement("span");lbl.className="smp-lbl";lbl.textContent=label;
    if(item.note){const sub=document.createElement("small");sub.className="smp-sub";sub.textContent=item.note;lbl.append(sub);}
    row.append(ic,lbl);
-   row.addEventListener("mousedown",e=>{e.preventDefault();selectItem(item);});
+   row.addEventListener("pointerdown",e=>{e.preventDefault();selectItem(item);});
    panel.append(row);
   });
  }
  function selectItem(item){selectedItem=item;input.value=getLabel(item);closePanel();onPick(item);}
- function openPanel(){if(open)return;open=true;renderList();panel.hidden=false;input.setAttribute("aria-expanded","true");}
- function closePanel(){if(!open)return;open=false;panel.hidden=true;input.setAttribute("aria-expanded","false");}
+ function openPanel(){open=true;renderList();panel.hidden=false;panel.style.display="block";input.setAttribute("aria-expanded","true");}
+ function closePanel(){open=false;panel.hidden=true;panel.style.display="none";input.setAttribute("aria-expanded","false");}
  input.addEventListener("focus",openPanel);
  input.addEventListener("click",openPanel);
  input.addEventListener("input",()=>{selectedItem=null;if(!open)openPanel();else renderList();});
- input.addEventListener("blur",()=>setTimeout(closePanel,160));
+ input.addEventListener("blur",()=>setTimeout(()=>{if(!panel.contains(document.activeElement))closePanel();},300));
  input.addEventListener("keydown",e=>{
   if(e.key==="Escape"){closePanel();return;}
   if(e.key==="ArrowDown"){e.preventDefault();panel.querySelector(".smp-item")?.focus();}
