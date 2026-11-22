@@ -152,3 +152,5 @@ body:not(.bjverify-site) a{color:#76dff4}
 .engine-tab{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-height:43px;padding:0 2px 7px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#aebfd5;font:500 16px 'DM Sans',sans-serif;cursor:pointer}
 .engine-tab[aria-selected=true]{color:#69baff;border-bottom-color:#3b9df5}
 .engine-cheapest{color:#35d39a;font-size:9px;font-weight:850;letter-spacing:.45px}
+
+.engine-tabs[hidden]{display:none!important}
