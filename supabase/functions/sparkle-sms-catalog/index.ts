@@ -150,7 +150,7 @@ async function countries() {
   const deduped = new Map<string, any>(); for (const country of international) deduped.set(country.code, country);
   return { success: true, countries: [usa, ...Array.from(deduped.values()).sort((a,b)=>a.name.localeCompare(b.name))], warnings };
 }
-async function services(country: string, mode: string) {
+async function services(country: string, mode: string, includeProviderCode = false) {
   const code = country.trim().toUpperCase(), catalogue = mode.trim().toLowerCase();
   if (!/^[A-Z]{2}$/.test(code)) throw new Error("Choose a valid country.");
   let provider: string, data: any;
@@ -160,7 +160,7 @@ async function services(country: string, mode: string) {
   else throw new Error("Choose a valid number destination.");
   const normalized = rows(data).map(normalizeService).filter(Boolean);
   const available = provider === "fetchsms" ? normalized.filter((item:any)=>item.available) : normalized;
-  const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,available:item.available,available_count:item.available_count})));
+  const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,available:item.available,available_count:item.available_count,...(includeProviderCode?{code:item.code}: {})})));
   return { success:true, services:publicServices };
 }
 Deno.serve(async (req: Request) => {
@@ -172,6 +172,14 @@ Deno.serve(async (req: Request) => {
     const action = str(body?.action).toLowerCase();
     if (action === "countries") return json(await countries());
     if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase()));
+    if (action === "admin-services") {
+      const user = await getUser(req);
+      if (user.app_metadata?.role !== "admin") return json({ success:false,error:"Administrator access is required." },403);
+      const country = str(body?.country,body?.country_iso).toUpperCase();
+      const mode = str(body?.mode).toLowerCase();
+      const result = await services(country,mode,true);
+      return json(result);
+    }
     return json({ success:false,error:"Use the countries or services action." },400);
   } catch (error) {
     console.error("BJVERIFY catalogue request failed:", error instanceof Error ? error.message : String(error));
