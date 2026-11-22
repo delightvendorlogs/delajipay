@@ -296,8 +296,9 @@ async function loadAdminPricingServices(){
 }
 document.querySelector("#pricing-provider")?.addEventListener("change",()=>{
  const provider=document.querySelector("#pricing-provider").value;
+ if(provider==="smsbower"){document.querySelector("#pricing-country").value="*";pricingCountryPicker?.setValue("All countries (*)");void loadAdminPricingCatalog();return;}
  if(provider==="virtualsms"&&document.querySelector("#pricing-country").value==="US"){document.querySelector("#pricing-country").value="*";pricingCountryPicker?.setValue("All countries (*)");}
- if(provider!=="virtualsms"&&provider!=="smsbower"&&document.querySelector("#pricing-country").value!=="US"){document.querySelector("#pricing-country").value="US";pricingCountryPicker?.setValue("🇺🇸 United States");}
+ if(provider!=="virtualsms"&&document.querySelector("#pricing-country").value!=="US"){document.querySelector("#pricing-country").value="US";pricingCountryPicker?.setValue("🇺🇸 United States");}
  void loadAdminPricingServices();
 });
 
