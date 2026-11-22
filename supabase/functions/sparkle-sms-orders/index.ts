@@ -42,7 +42,7 @@ async function getUser(req: Request) {
 }
 async function requestJson(url: string, headers: Record<string,string> = {}, options: RequestInit = {}) {
   let response: Response;
-  try { response = await fetch(url, { ...options, headers: { Accept:"application/json", ...headers, ...((options.headers || {}) as Record<string,string>) } }); }
+  try { const hasBody=options.body!==undefined&&options.body!==null; response = await fetch(url, { ...options, headers: { Accept:"application/json", ...(hasBody?{"Content-Type":"application/json"}:{}), ...headers, ...((options.headers || {}) as Record<string,string>) } }); }
   catch (e) { const error = new Error("Provider connection could not be confirmed."); (error as any).status = 0; throw error; }
   const raw = await response.text();
   let data: any = {};
