@@ -7,7 +7,20 @@ const SERVICE_REF_SECRET = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const VIRTUALSMS_API_KEY = Deno.env.get("VIRTUALSMS_API_KEY") ?? "";
 const FETCHSMS_API_KEY = Deno.env.get("FETCHSMS_API_KEY") ?? "";
 const TEXTVERIFIED_API_USERNAME = Deno.env.get("TEXTVERIFIED_API_USERNAME") ?? "";
-const TEXTVERIFIED_API_KEY = Deno.env.get("TEXTVERIFIED_API_KEY") ?? "";
+const TEXTVERIFIED_API_KEY = Deno.env.get("TEXTVERIFIED_API_KEY") ?? "";\nconst SMSBOWER_API_KEY = Deno.env.get("SMSBOWER_API_KEY") ?? "";
+const SMSBOWER_URL = "https://smsbower.page/stubs/handler_api.php";
+async function smsBowerRequest(params:Record<string,string|number>){
+ if(!SMSBOWER_API_KEY)throw new Error("SMSBower access is not configured.");
+ const url=new URL(SMSBOWER_URL);url.searchParams.set("api_key",SMSBOWER_API_KEY);
+ for(const [k,v] of Object.entries(params))url.searchParams.set(k,String(v));
+ const response=await fetch(url.toString(),{headers:{Accept:"application/json,text/plain,*/*"}});
+ const raw=await response.text();if(!response.ok)throw new Error("SMSBower catalogue request failed.");
+ try{return JSON.parse(raw);}catch{return raw.trim();}
+}
+function smsRows(raw:any):any[]{if(Array.isArray(raw))return raw;if(Array.isArray(raw?.countries))return raw.countries;if(Array.isArray(raw?.services))return raw.services;if(Array.isArray(raw?.data))return raw.data;if(raw&&typeof raw==="object")return Object.entries(raw).map(([id,v]:any)=>typeof v==="object"?{id,...v}:{id,name:v});return [];}
+function smsCountry(row:any){const id=Number(row?.id??row?.country_id??row?.countryId);const name=str(row?.eng,row?.name,row?.en,row?.country);if(!Number.isInteger(id)||id<0||!name||/virtual/i.test(name))return null;let code="";try{const names=new Intl.DisplayNames(["en"],{type:"region"});for(let i=0;i<676;i++){const a=String.fromCharCode(65+Math.floor(i/26))+String.fromCharCode(65+i%26);if(names.of(a)?.toLowerCase()===name.toLowerCase()){code=a;break;}}}catch{}if(!code){const aliases:any={"united states":"US","usa":"US","united kingdom":"GB","south korea":"KR","russia":"RU","viet nam":"VN"};code=aliases[name.toLowerCase()]||"";}return /^[A-Z]{2}$/.test(code)?{id,code,name,flag:String.fromCodePoint(...[...code].map(ch=>127397+ch.charCodeAt(0)))}:null;}
+function smsPrices(raw:any){const found:any[]=[];const visit=(node:any,key="")=>{if(!node||typeof node!=="object")return;if(Array.isArray(node)){node.forEach(x=>visit(x));return;}const cost=Number(node.price??node.cost??node.activationCost),stock=Number(node.count??node.stock),id=String(node.provider_id??node.providerId??node.provider??node.id??key);if(id&&id!=="0"&&cost>0&&stock>0)found.push({id,cost,stock:Math.floor(stock)});for(const [k,v] of Object.entries(node))if(!["price","cost","count","stock","provider_id","providerId","provider","id","activationCost"].includes(k))visit(v,k);};visit(raw);const m=new Map();for(const p of found){const old=m.get(p.id);if(!old||p.cost<old.cost)m.set(p.id,p);}return [...m.values()].sort((a,b)=>a.cost-b.cost||b.stock-a.stock);}
+
 
 const VIRTUALSMS_BASE = "https://virtualsms.io/api/v1";
 const FETCHSMS_BASE = "https://api.fetchsms.com/v1";
@@ -150,7 +163,7 @@ async function serviceRef(provider: string, country: string, code: string, name:
   const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ provider, country, code, name, issued: Date.now() })));
   return base64Url(iv) + "." + base64Url(new Uint8Array(encrypted));
 }
-async function countries() {
+async function countries(engine = "1") {\n  if (engine === "2") { const raw=await smsBowerRequest({action:"getCountries"}); const list=smsRows(raw).map(smsCountry).filter(Boolean); const seen=new Set(); return {success:true,countries:list.filter((x:any)=>{if(seen.has(x.code))return false;seen.add(x.code);return true;}).sort((a:any,b:any)=>a.name.localeCompare(b.name)),warnings:[]}; }
   const warnings: string[] = []; let international: any[] = [];
   try {
     const result = await virtualSmsRequest("/customer/countries");
@@ -167,7 +180,7 @@ async function countries() {
   console.log("BJVERIFY country catalogue loaded:", { count:list.length, international:deduped.size, warnings });
   return { success: true, countries: list, warnings };
 }
-async function services(country: string, mode: string, includeProviderCode = false) {
+async function services(country: string, mode: string, includeProviderCode = false, engine = "1") {
   const code = country.trim().toUpperCase(), catalogue = mode.trim().toLowerCase();
   if (!/^[A-Z]{2}$/.test(code)) throw new Error("Choose a valid country.");
   let provider: string, data: any;
@@ -194,14 +207,14 @@ Deno.serve(async (req: Request) => {
     await getUser(req);
     const body = await req.json().catch(()=>({}));
     const action = str(body?.action).toLowerCase();
-    if (action === "countries") return json(await countries());
-    if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase()));
+    if (action === "countries") return json(await countries(str(body?.engine,"1")));
+    if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase(),false,str(body?.engine,"1")));
     if (action === "admin-services") {
       const user = await getUser(req);
       if (user.app_metadata?.role !== "admin") return json({ success:false,error:"Administrator access is required." },403);
       const country = str(body?.country,body?.country_iso).toUpperCase();
       const mode = str(body?.mode).toLowerCase();
-      const result = await services(country,mode,true);
+      const result = await services(country,mode,true,str(body?.engine,"1"));
       return json(result);
     }
     return json({ success:false,error:"Use the countries or services action." },400);
