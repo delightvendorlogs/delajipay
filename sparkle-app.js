@@ -119,7 +119,7 @@ function renderSelectedService(){
 }
 async function loadCountries(){
  if(!countrySelect)return;fillSelect(countrySelect,[],"Loading countries…",x=>x.code,x=>x.name,true);
- try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});if(error)throw error;countries=data?.countries||[];renderCountries();}
+ try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});if(error)throw error;countries=data?.countries||[];renderCountries();const status=document.querySelector("#country-catalogue-status");if(status){status.hidden=false;status.textContent=data?.warnings?.length?data.warnings.join(" "):countries.length<=1?"Only one destination is currently being returned by the provider. More countries will appear when its live country inventory is available.":countries.length+" destinations available.";}}
  catch(error){fillSelect(countrySelect,[],"Country list unavailable",x=>x.code,x=>x.name,true);console.warn("Country catalogue:",error);}
 }
 async function loadServices(country,name,mode=activeCatalog){
@@ -130,9 +130,9 @@ async function loadServices(country,name,mode=activeCatalog){
  catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
-countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>c.code+" "+countryAliases(c),c=>(c.flag?c.flag+" ":"")+c.name,c=>{if(countrySelect){countrySelect.value=c.code;countrySelect.dispatchEvent(new Event("change"));}});
+countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>c.code+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{if(countrySelect){countrySelect.value=c.code;countrySelect.dispatchEvent(new Event("change"));}});
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>c.code===countrySelect.value);if(country)loadServices(country.code,country.name,"all");});
-servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}});
+servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref, s=>serviceIcon(s.name)+"  "+s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}});
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
 const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
 if(countrySelect){void loadCountries().then(()=>{const params=new URLSearchParams(location.search);if(params.get("tab")==="all"){setCatalog("all");const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();countryPicker?.render();}}else setCatalog("usa");});}
@@ -200,13 +200,13 @@ async function loadAdminPricingCatalog(){
   document.querySelector("#pricing-country").value=c.code;
   void loadAdminPricingServices();
  });
- pricingServicePicker=mountSearchPicker("pricing-service-search","pricing-service-list",()=>adminServices,s=>s.code,s=>s.name,s=>{
+ pricingServicePicker=mountSearchPicker("pricing-service-search","pricing-service-list",()=>adminServices,s=>s.code,s=>s.code==="*"?"📱 "+s.name:serviceIcon(s.name)+"  "+s.name,s=>{
   document.querySelector("#pricing-service").value=s.code;
  });
  const countryValue=document.querySelector("#pricing-country").value||"*";
  const initial=adminCountries.find(c=>c.code===countryValue)||adminCountries[0];
  document.querySelector("#pricing-country").value=initial.code;
- pricingCountryPicker.setValue(initial.flag?initial.flag+" "+initial.name:initial.name);
+ pricingCountryPicker.setValue(initial.code==="*"?"🌍 "+initial.name:countryFlag(initial.code)+" "+initial.name);
  await loadAdminPricingServices();
 }
 async function loadAdminPricingServices(){
