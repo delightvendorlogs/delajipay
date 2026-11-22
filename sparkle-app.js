@@ -101,8 +101,8 @@ function renderCountries(){
  const q=(document.querySelector("#country-search")?.value||"").trim().toLowerCase();
  const filtered=countries.filter(c=>countryAliases(c).includes(q));
  const current=countrySelect.value;
- fillSelect(countrySelect,filtered,"Select a country",c=>c.code,c=>countryFlag(c.code)+" "+c.name,!countries.length);
- if(filtered.some(c=>c.code===current))countrySelect.value=current;
+ fillSelect(countrySelect,filtered,"Select a country",c=>c.key||c.code,c=>countryFlag(c.code)+" "+c.name,!countries.length);
+ if(filtered.some(c=>(c.key||c.code)===current))countrySelect.value=current;
  if(!filtered.length){countrySelect.disabled=true;const option=document.createElement("option");option.textContent="No matching countries";option.value="";countrySelect.append(option);}
  countryPicker?.render();
 }
@@ -166,10 +166,7 @@ function renderSelectedService(){
    result.textContent="Price "+money(quote.customer_price_kobo);
    let poolPicker=actions.querySelector("[data-pool-picker]");if(poolPicker)poolPicker.remove();
    if(activeEngine==="2"&&Array.isArray(quote.pools)&&quote.pools.length){
-    poolPicker=document.createElement("select");poolPicker.dataset.poolPicker="true";poolPicker.className="app-select";poolPicker.setAttribute("aria-label","Choose an available pool");
-    quote.pools.forEach((pool,index)=>{const option=document.createElement("option");option.value=pool.id;option.textContent=pool.label+" · "+money(pool.customerPriceKobo)+" · "+pool.stock+" available";poolPicker.append(option);});
-    selectedPoolId=quote.selected_pool_id||quote.pools[0].id;poolPicker.value=selectedPoolId;actions.insertBefore(poolPicker,result);
-    poolPicker.addEventListener("change",async()=>{selectedPoolId=poolPicker.value;quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,pool_id:selectedPoolId,engine:activeEngine});result.textContent="Price "+money(quote.customer_price_kobo);});
+    poolPicker=document.createElement("div");poolPicker.dataset.poolPicker="true";poolPicker.className="sms-pool-options";poolPicker.setAttribute("aria-label","Available pools");selectedPoolId=quote.selected_pool_id||quote.pools[0].id;quote.pools.forEach((pool,index)=>{const option=document.createElement("button");option.type="button";option.className="sms-pool-option"+(pool.id===selectedPoolId?" is-selected":"");option.textContent=pool.label+" · "+money(pool.customerPriceKobo)+" · "+pool.stock+" available";option.addEventListener("click",async()=>{selectedPoolId=pool.id;poolPicker.querySelectorAll("button").forEach(b=>b.classList.remove("is-selected"));option.classList.add("is-selected");try{quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,pool_id:selectedPoolId,engine:activeEngine});result.textContent="Price "+money(quote.customer_price_kobo);}catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}});poolPicker.append(option);});actions.insertBefore(poolPicker,result);result.textContent="Price "+money(quote.customer_price_kobo);});
    }
    let buy=actions.querySelector("[data-buy-service]");
    if(!buy){buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.dataset.buyService="true";buy.textContent="Get this number";actions.append(buy);}
@@ -189,16 +186,16 @@ async function loadCountries(){
  try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries",engine:activeEngine}});if(error)throw error;countries=data?.countries||[];renderCountries();const status=document.querySelector("#country-catalogue-status");if(status){status.hidden=false;status.textContent=data?.warnings?.length?data.warnings.join(" "):countries.length<=1?"Only one destination is currently being returned by the provider. More countries will appear when its live country inventory is available.":countries.length+" destinations available.";}}
  catch(error){fillSelect(countrySelect,[],"Country list unavailable",x=>x.code,x=>x.name,true);console.warn("Country catalogue:",error);}
 }
-async function loadServices(country,name,mode=activeCatalog){
+async function loadServices(country,name,mode=activeCatalog,countryId=""){
  if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;selectedService=null;servicePicker?.clear();
  if(heading)heading.textContent=mode==="usa"?"USA services":selectedCountryName+" services";if(description)description.textContent="Choose a service to see its customer price.";
  fillSelect(serviceSelect,[],"Loading services…",x=>x.ref,x=>x.name,true);note(providersBox,"Loading available services…");
- try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode,engine:activeEngine}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
+ try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode,engine:activeEngine,country_id:countryId}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
  catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
-countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>c.code+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{if(countrySelect){countrySelect.value=c.code;countrySelect.dispatchEvent(new Event("change"));}});
-countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>c.code===countrySelect.value);if(country)loadServices(country.code,country.name,"all");});
+countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>(c.key||c.code)+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{if(countrySelect){countrySelect.value=c.key||c.code;countrySelect.dispatchEvent(new Event("change"));}});
+countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>(c.key||c.code)===countrySelect.value);if(country)loadServices(country.code,country.name,"all",country.id||"");});
 servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}},s=>s);
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
 const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
