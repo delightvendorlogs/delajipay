@@ -69,8 +69,8 @@ let countryPicker,servicePicker;
 function setCatalog(mode){
  activeCatalog=mode==="all"?"all":"usa";
  document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===activeCatalog)));
- const picker=document.querySelector("#all-country-picker"),usaIntro=document.querySelector("#usa-intro");
- if(picker)picker.hidden=activeCatalog!=="all";if(usaIntro)usaIntro.hidden=activeCatalog!=="usa";
+ const picker=document.querySelector("#all-country-picker"),usaIntro=document.querySelector("#usa-intro"),engineTabs=document.querySelector(".engine-tabs");
+ if(picker)picker.hidden=activeCatalog!=="all";if(usaIntro)usaIntro.hidden=activeCatalog!=="usa";if(engineTabs)engineTabs.hidden=activeCatalog!=="all";
  const search=document.querySelector("#service-search");if(search)search.value="";
  if(activeCatalog==="usa"){
   selectedCountry="US";selectedCountryName="United States";
