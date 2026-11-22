@@ -215,7 +215,7 @@ async function resolveServiceRef(token:string,catalogue:string,country:string){
   data=JSON.parse(new TextDecoder().decode(plain));
  }catch{throw new Error("Choose a valid service.");}
  if(!data||data.country!==country||!data.code||!data.name||Date.now()-Number(data.issued)>30*60*1000)throw new Error("Please refresh the service list and choose again.");
- const expected=catalogue==="usa"&&country==="US"?"textverified":catalogue==="all"&&country==="US"?"fetchsms":catalogue==="all"?(data.provider==="smsbower"?"smsbower":"virtualsms"):"";
+ const expected=catalogue==="usa"&&country==="US"?"textverified":catalogue==="all"&&data.provider==="smsbower"?"smsbower":catalogue==="all"&&country==="US"?"fetchsms":catalogue==="all"?"virtualsms":"";
  if(!expected||data.provider!==expected)throw new Error("That service is not available in this destination.");
  return {provider:expected,code:String(data.code),name:String(data.name)};
 }
@@ -342,7 +342,7 @@ Deno.serve(async(req:Request)=>{
       if(!["markup","fixed"].includes(pricing_mode))return json({success:false,error:"Choose a valid pricing mode."},400);
       if(pricing_mode==="markup"&&(!Number.isFinite(markup_percent)||markup_percent<0||markup_percent>1000))return json({success:false,error:"Markup must be between 0 and 1000 percent."},400);
       if(pricing_mode==="fixed"&&fixed_price_kobo<=0)return json({success:false,error:"Enter a fixed customer price greater than zero."},400);
-      if((provider_key==="virtualsms"&&country_iso==="US")||(provider_key==="smsbower"&&country_iso==="US")||(provider_key!=="virtualsms"&&provider_key!=="smsbower"&&country_iso!=="US"&&country_iso!=="*"))return json({success:false,error:"That provider cannot be assigned to the selected country."},400);
+      if((provider_key==="virtualsms"&&country_iso==="US")||(provider_key!=="virtualsms"&&provider_key!=="smsbower"&&country_iso!=="US"&&country_iso!=="*"))return json({success:false,error:"That provider cannot be assigned to the selected country."},400);
       const payload={provider_key,country_iso,service_code,pricing_mode,markup_percent:pricing_mode==="markup"?markup_percent:0,fixed_price_kobo:pricing_mode==="fixed"?fixed_price_kobo:null,is_active:true,updated_at:new Date().toISOString()};
       const {data,error}=await admin.from("sparkle_sms_pricing_rules").upsert(payload,{onConflict:"provider_key,country_iso,service_code"}).select().single();
       if(error)throw new Error("The pricing rule could not be saved.");
