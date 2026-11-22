@@ -43,7 +43,7 @@ function countryFlag(code){const value=String(code||"").toUpperCase();return /^[
 function serviceIconUrl(service){
  const name=String(service?.name||"").toLowerCase(),supplied=String(service?.icon||"").trim();
  if(/^https:\/\//i.test(supplied))return supplied;
- const brands=[[/whatsapp/,"whatsapp"],[/telegram/,"telegram"],[/instagram/,"instagram"],[/facebook|meta/,"facebook"],[/tiktok/,"tiktok"],[/youtube/,"youtube"],[/google|gmail/,"google"],[/discord/,"discord"],[/microsoft|outlook|hotmail/,"microsoft"],[/uber/,"uber"],[/amazon/,"amazon"],[/apple|icloud/,"apple"],[/snapchat/,"snapchat"],[/reddit/,"reddit"],[/binance/,"binance"],[/steam/,"steam"],[/linkedin/,"linkedin"],[/paypal/,"paypal"],[/tinder/,"tinder"],[/viber/,"viber"],[/signal/,"signal"],[/netflix/,"netflix"],[/twitter|^x$/,"x"]];
+ const brands=[[/whatsapp/,"whatsapp"],[/telegram/,"telegram"],[/instagram/,"instagram"],[/facebook|meta/,"facebook"],[/tiktok/,"tiktok"],[/youtube/,"youtube"],[/google|gmail/,"google"],[/discord/,"discord"],[/microsoft|outlook|hotmail/,"microsoft"],[/uber/,"uber"],[/amazon/,"amazon"],[/apple|icloud/,"apple"],[/snapchat/,"snapchat"],[/reddit/,"reddit"],[/binance/,"binance"],[/steam/,"steam"],[/linkedin/,"linkedin"],[/paypal/,"paypal"],[/tinder/,"tinder"],[/cash app|cashapp/,"cashapp"],[/viber/,"viber"],[/signal/,"signal"],[/netflix/,"netflix"],[/twitter|^x$/,"x"]];
  const slug=brands.find(([pattern])=>pattern.test(name))?.[1];
  return slug?"https://cdn.simpleicons.org/"+slug:"";
 }
@@ -89,8 +89,36 @@ function renderCountries(){
  countryPicker?.render();
 }
 async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error){let detail="";try{const response=error.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();detail=payload?.error||payload?.message||"";}}catch{}throw new Error(detail||error.message||"The request could not be completed.");}if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
+const POPULAR_SERVICE_ORDER=["whatsapp","telegram","signal","instagram","facebook","tinder","cash app","google","tiktok","snapchat","x","discord"];
+function popularServiceRank(service){
+ const name=String(service?.name||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+ const compact=name.replace(/\s+/g,"");
+ const aliases=[
+  ["whatsapp",["whatsapp"]],
+  ["telegram",["telegram"]],
+  ["signal",["signal"]],
+  ["instagram",["instagram"]],
+  ["facebook",["facebook","meta"]],
+  ["tinder",["tinder"]],
+  ["cash app",["cashapp","cash app"]],
+  ["google",["google","gmail"]],
+  ["tiktok",["tiktok"]],
+  ["snapchat",["snapchat"]],
+  ["x",["twitter","x"]],
+  ["discord",["discord"]]
+ ];
+ for(let rank=0;rank<aliases.length;rank++){
+  const [key,terms]=aliases[rank];
+  if(terms.some(term=>term==="x"?name==="x"||name.startsWith("x "):compact.includes(term.replace(/\s+/g,""))))return rank;
+ }
+ return POPULAR_SERVICE_ORDER.length;
+}
+function sortServicesPopularFirst(services){
+ return (services||[]).map((service,index)=>({service,index,rank:popularServiceRank(service)}))
+  .sort((a,b)=>a.rank-b.rank||a.index-b.index).map(entry=>entry.service);
+}
 function renderServices(data){
- if(!providersBox)return;serviceResults=data.services||[];
+ if(!providersBox)return;serviceResults=sortServicesPopularFirst(data.services||[]);
  const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
  const services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
  const previous=serviceSelect?.value||"";
