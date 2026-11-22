@@ -151,6 +151,7 @@ async function quote(provider:string,country:string,service:string,serviceName:s
   throw new Error("Unknown provider.");
 }
 function getProviderId(data:any,provider:string){
+  if(provider==="smsbower")return str(data?.activationId,data?.activation_id,data?.id);
   if(provider==="textverified")return str(data?.id,data?.verificationId,data?.verification_id,data?.data?.id,data?.data?.verificationId);
   return str(data?.id,data?.order_id,data?.verification_id,data?.data?.id,data?.data?.order_id);
 }
@@ -361,7 +362,7 @@ Deno.serve(async(req:Request)=>{
     const message=error instanceof Error?error.message:"Unexpected server error.";
     console.error("BJVERIFY SMS order function:",message);
     const kind=customerProviderError(error);
-    const safeMessage=kind?customerProviderErrorMessage(kind):/virtualsms|fetchsms|textverified|provider|api key|credential|http \\d{3}|service code|country id/i.test(message)?"We could not complete that request. Please try again.":message;
+    const safeMessage=kind?customerProviderErrorMessage(kind):/smsbower|virtualsms|fetchsms|textverified|provider|api key|credential|http \\d{3}|service code|country id/i.test(message)?"We could not complete that request. Please try again.":message;
     return json({success:false,error:safeMessage},400);
   }
 });
