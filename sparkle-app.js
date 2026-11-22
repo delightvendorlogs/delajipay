@@ -158,14 +158,22 @@ function renderSelectedService(){
  quoteButton.addEventListener("click",async()=>{
   quoteButton.disabled=true;quoteButton.textContent="Checking…";result.textContent="";
   try{
-   const quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,engine:activeEngine});
+   let selectedPoolId="";
+   let quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,engine:activeEngine});
    result.textContent="Price "+money(quote.customer_price_kobo);
+   let poolPicker=actions.querySelector("[data-pool-picker]");if(poolPicker)poolPicker.remove();
+   if(activeEngine==="2"&&Array.isArray(quote.pools)&&quote.pools.length){
+    poolPicker=document.createElement("select");poolPicker.dataset.poolPicker="true";poolPicker.className="app-select";poolPicker.setAttribute("aria-label","Choose an available pool");
+    quote.pools.forEach((pool,index)=>{const option=document.createElement("option");option.value=pool.id;option.textContent=pool.label+" · "+money(Math.ceil(pool.providerUsd*quote.exchange_rate*100*(1+Number(quote.markup_percent||100)/100)))+" · "+pool.stock+" available";poolPicker.append(option);});
+    selectedPoolId=quote.selected_pool_id||quote.pools[0].id;poolPicker.value=selectedPoolId;actions.insertBefore(poolPicker,result);
+    poolPicker.addEventListener("change",async()=>{selectedPoolId=poolPicker.value;quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,pool_id:selectedPoolId,engine:activeEngine});result.textContent="Price "+money(quote.customer_price_kobo);});
+   }
    let buy=actions.querySelector("[data-buy-service]");
    if(!buy){buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.dataset.buyService="true";buy.textContent="Get this number";actions.append(buy);}
    buy.onclick=async()=>{
     if(!await askConfirm({title:"Confirm number purchase",message:"Get a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?",note:"Your wallet will only be charged if the provider confirms the order.",confirmText:"Continue to buy"}))return;
     buy.disabled=true;buy.textContent="Processing…";
-    try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref,engine:activeEngine},{"Idempotency-Key":crypto.randomUUID()});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
+    try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref,pool_id:selectedPoolId,engine:activeEngine},{"Idempotency-Key":crypto.randomUUID()});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
     catch(error){result.textContent=error.message||"The request could not be completed.";buy.disabled=false;buy.textContent="Try again";}
    };
   }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
