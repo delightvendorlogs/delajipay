@@ -56,7 +56,7 @@ function cleanServiceName(value: string) {
   return value.replace(/\b(?:virtual\s*sms|virtualsms|fetch\s*sms|fetchsms|text\s*verified|textverified)\b/gi, "").replace(/[|·•:–—-]{2,}/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 function normalizeService(item: any) {
-  const code = str(item?.service_code, item?.serviceCode, item?.service_id, item?.serviceId, item?.code, item?.id, item?.service, item?.key, item?.slug, item?.value);
+  const code = str(item?.service_code, item?.serviceCode, item?.service_id, item?.serviceId, item?.code, item?.id, item?.service, item?.key, item?.slug, item?.value, item?.service_name, item?.serviceName);
   const name = cleanServiceName(str(item?.service_name, item?.serviceName, item?.name, item?.label, item?.title, item?.service, code));
   if (!code || !name) return null;
   return {
