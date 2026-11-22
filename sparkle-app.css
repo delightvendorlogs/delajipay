@@ -174,3 +174,6 @@ body:not(.bjverify-site) a{color:#76dff4}
 .search-picker-list:not([hidden]){display:block!important;position:relative;top:auto;left:auto;right:auto;margin-top:7px;max-height:42vh;min-height:42px;overflow-y:auto}
 .search-picker-list[hidden]{display:none!important}
 .search-picker-option{position:relative;z-index:1;touch-action:manipulation}
+
+/* Force searchable catalogues to remain visible when opened on mobile */
+.search-picker{overflow:visible!important;z-index:100!important}.search-picker-list:not([hidden]){display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:9999!important;max-height:42vh!important;min-height:44px!important;overflow-y:auto!important;pointer-events:auto!important}.search-picker-list[hidden]{display:none!important}
