@@ -77,6 +77,8 @@ function countryAliases(country){
 let countryPicker,servicePicker;
 function setCatalog(mode){
  activeCatalog=mode==="all"?"all":"usa";
+ if(activeCatalog==="all")activeEngine="1";
+ document.querySelectorAll("[data-engine-tab]").forEach(tab=>tab.setAttribute("aria-selected",String(tab.dataset.engineTab===activeEngine)));
  document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===activeCatalog)));
  const picker=document.querySelector("#all-country-picker"),usaIntro=document.querySelector("#usa-intro"),engineTabs=document.querySelector(".engine-tabs");
  if(picker)picker.hidden=activeCatalog!=="all";if(usaIntro)usaIntro.hidden=activeCatalog!=="usa";if(engineTabs)engineTabs.hidden=activeCatalog!=="all";
