@@ -256,7 +256,7 @@ async function loadAdminPricingCatalog(){
  const countryInput=document.querySelector("#pricing-country-search"),serviceInput=document.querySelector("#pricing-service-search");
  if(!countryInput||!serviceInput)return;
  try{
-  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});
+  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries",engine:document.querySelector("#pricing-provider")?.value==="smsbower"?"2":"1"});
   if(error)throw error;
   adminCountries=[{code:"*",name:"All countries (*)"},...(data?.countries||[])];
  }catch(error){console.warn("Admin country catalogue:",error);}
