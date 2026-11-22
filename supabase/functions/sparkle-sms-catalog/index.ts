@@ -166,7 +166,7 @@ async function serviceRef(provider: string, country: string, code: string, name:
   return base64Url(iv) + "." + base64Url(new Uint8Array(encrypted));
 }
 async function countries(engine = "1") {
-  if (engine === "2") { const raw=await smsBowerRequest({action:"getCountries"}); const list=smsRows(raw).map(smsCountry).filter(Boolean); const seen=new Set(); return {success:true,countries:list.filter((x:any)=>{if(seen.has(x.code))return false;seen.add(x.code);return true;}).sort((a:any,b:any)=>a.name.localeCompare(b.name)),warnings:[]}; }
+  if (engine === "2") { const raw=await smsBowerRequest({action:"getCountries"}); const list=smsRows(raw).map(smsCountry).filter(Boolean).map((x:any)=>({...x,key:"smsbower:"+x.id})); return {success:true,countries:list.sort((a:any,b:any)=>a.name.localeCompare(b.name)||a.id-b.id),warnings:[]}; }
   const warnings: string[] = []; let international: any[] = [];
   try {
     const result = await virtualSmsRequest("/customer/countries");
@@ -183,13 +183,13 @@ async function countries(engine = "1") {
   console.log("BJVERIFY country catalogue loaded:", { count:list.length, international:deduped.size, warnings });
   return { success: true, countries: list, warnings };
 }
-async function services(country: string, mode: string, includeProviderCode = false, engine = "1") {
+async function services(country: string, mode: string, includeProviderCode = false, engine = "1", countryId = "") {
   const code = country.trim().toUpperCase(), catalogue = mode.trim().toLowerCase();
   if (!/^[A-Z]{2}$/.test(code)) throw new Error("Choose a valid country.");
   let provider: string, data: any;
   if (engine === "2" && catalogue === "all") {
     const countryRows=smsRows(await smsBowerRequest({action:"getCountries"})).map(smsCountry).filter(Boolean);
-    const countryRow=countryRows.find((x:any)=>x.code===code);
+    const countryRow=countryRows.find((x:any)=>countryId?String(x.id)===String(countryId):x.code===code);
     if(!countryRow)throw new Error("This country is not available on Server 2.");
     const servicesList=smsServiceRows(await smsBowerRequest({action:"getServicesList"}));
     const live=await Promise.all(servicesList.map(async(item:any)=>{try{const raw=await smsBowerRequest({action:"getPricesV3",country:countryRow.id,service:item.code});const countryBranch=raw?.[String(countryRow.id)]??raw?.[String(countryRow.id).toLowerCase()];const serviceBranch=countryBranch?.[String(item.code)]??countryBranch?.[String(item.code).toLowerCase()];const pools=smsPrices(serviceBranch??(countryBranch?{}:raw));if(!pools.length)return null;return {ref:await serviceRef("smsbower",code,item.code+"|"+countryRow.id,item.name),name:cleanServiceName(item.name),icon:item.icon,available:true,available_count:pools.reduce((sum:number,p:any)=>sum+p.stock,0),code:item.code};}catch(error){console.warn("SMSBower service inventory lookup failed",item.code,error instanceof Error?error.message:String(error));return null;}}));
@@ -218,14 +218,14 @@ Deno.serve(async (req: Request) => {
     await getUser(req);
     const body = await req.json().catch(()=>({}));
     const action = str(body?.action).toLowerCase();
-    if (action === "countries") return json(await countries(str(body?.engine,"1")));
+    if (action === "countries") return json(await countries(str(body?.engine,"1"),str(body?.country_id)));
     if (action === "services") return json(await services(str(body?.country,body?.country_iso), str(body?.mode).toLowerCase(),false,str(body?.engine,"1")));
     if (action === "admin-services") {
       const user = await getUser(req);
       if (user.app_metadata?.role !== "admin") return json({ success:false,error:"Administrator access is required." },403);
       const country = str(body?.country,body?.country_iso).toUpperCase();
       const mode = str(body?.mode).toLowerCase();
-      const result = await services(country,mode,true,str(body?.engine,"1"));
+      const result = await services(country,mode,true,str(body?.engine,"1"),str(body?.country_id));
       return json(result);
     }
     return json({ success:false,error:"Use the countries or services action." },400);
