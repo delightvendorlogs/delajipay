@@ -91,6 +91,7 @@ function setCatalog(mode){
   fillSelect(serviceSelect,[],"Choose a country first",x=>x.ref,x=>x.name,true);
   note(providersBox,"Select a country to see available services.");
   if(countrySelect)countrySelect.value="";
+  void loadCountries();
  }
 }
 function renderCountries(){
