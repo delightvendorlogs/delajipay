@@ -31,7 +31,7 @@ function mountSearchPicker(inputId,listId,getItems,getValue,getLabel,onPick,getI
   for(const entry of filtered){
    const option=document.createElement("button");option.type="button";option.className="search-picker-option";option.setAttribute("role","option");
    if(getIcon){appendServiceIcon(option,getIcon(entry.item));const label=document.createElement("span");label.textContent=entry.label;option.append(label);}else option.textContent=entry.label;
-   option.addEventListener("pointerdown",event=>event.preventDefault());
+   
    option.addEventListener("click",()=>{input.value=entry.label;selectedLabel=entry.label;close();onPick(entry.item);});
    list.append(option);
   }
