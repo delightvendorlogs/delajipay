@@ -144,3 +144,11 @@ body:not(.bjverify-site) a{color:#76dff4}
 .service-brand-icon{width:23px;height:23px;flex:0 0 23px;object-fit:contain;display:inline-block;vertical-align:middle}
 .service-brand-icon-fallback{padding:2px;color:#8bdff5}
 .catalogue-selected-service>div:first-child strong{display:flex;align-items:center;gap:10px}
+
+
+/* Engine selector: simple text tabs matching the supplied reference */
+.engine-tabs{display:flex;align-items:center;gap:28px;overflow-x:auto;white-space:nowrap;margin:5px 0 17px;padding:0 0 2px;border-bottom:1px solid #263b58;scrollbar-width:none}
+.engine-tabs::-webkit-scrollbar{display:none}
+.engine-tab{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-height:43px;padding:0 2px 7px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#aebfd5;font:500 16px 'DM Sans',sans-serif;cursor:pointer}
+.engine-tab[aria-selected=true]{color:#69baff;border-bottom-color:#3b9df5}
+.engine-cheapest{color:#35d39a;font-size:9px;font-weight:850;letter-spacing:.45px}
