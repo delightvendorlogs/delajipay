@@ -7,19 +7,6 @@ nav?.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{nav.classL
 const countrySelect=document.querySelector("#country-select"),serviceSelect=document.querySelector("#service-select"),providersBox=document.querySelector("#provider-options"),heading=document.querySelector("#provider-heading"),description=document.querySelector("#provider-description");
 let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="United States",activeCatalog="usa",catalogRequest=0,selectedService=null;
 let activeEngine="1";
-document.querySelectorAll("[data-engine-tab]").forEach(button=>button.addEventListener("click",()=>{
- if(activeEngine===button.dataset.engineTab)return;
- activeEngine=button.dataset.engineTab;
- document.querySelectorAll("[data-engine-tab]").forEach(tab=>tab.setAttribute("aria-selected",String(tab.dataset.engineTab===activeEngine)));
- if(activeCatalog==="all"){
-  catalogRequest++;selectedCountry="";selectedCountryName="";selectedService=null;
-  const search=document.querySelector("#country-search");if(search)search.value="";
-  countryPicker?.clear();servicePicker?.clear();
-  fillSelect(serviceSelect,[],"Choose a country first",x=>x.ref,x=>x.name,true);
-  note(providersBox,"Select a country to see available services.");
-  void loadCountries();
- }
-}));
 
 const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
 function note(parent,message){if(!parent)return;const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
@@ -76,13 +63,15 @@ function countryAliases(country){
 
 let countryPicker,servicePicker;
 function setCatalog(mode){
- activeCatalog=mode==="all"?"all":"usa";
- if(activeCatalog==="all")activeEngine="1";
- document.querySelectorAll("[data-engine-tab]").forEach(tab=>tab.setAttribute("aria-selected",String(tab.dataset.engineTab===activeEngine)));
- document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===activeCatalog)));
- const picker=document.querySelector("#all-country-picker"),usaIntro=document.querySelector("#usa-intro"),engineTabs=document.querySelector(".engine-tabs");
- if(picker)picker.hidden=activeCatalog!=="all";if(usaIntro)usaIntro.hidden=activeCatalog!=="usa";if(engineTabs)engineTabs.hidden=activeCatalog!=="all";
+ const requested=mode==="all2"?"all2":mode==="all"?"all":"usa";
+ activeCatalog=requested==="usa"?"usa":"all";
+ activeEngine=requested==="all2"?"2":"1";
+ document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.catalogTab===requested)));
+ const picker=document.querySelector("#all-country-picker"),usaIntro=document.querySelector("#usa-intro");
+ if(picker)picker.hidden=activeCatalog!=="all";
+ if(usaIntro)usaIntro.hidden=activeCatalog!=="usa";
  const search=document.querySelector("#service-search");if(search)search.value="";
+ catalogRequest++;selectedService=null;servicePicker?.clear();countryPicker?.clear();
  if(activeCatalog==="usa"){
   selectedCountry="US";selectedCountryName="United States";
   if(heading)heading.textContent="USA services";if(description)description.textContent="Choose a service to see its customer price.";
@@ -93,6 +82,7 @@ function setCatalog(mode){
   fillSelect(serviceSelect,[],"Choose a country first",x=>x.ref,x=>x.name,true);
   note(providersBox,"Select a country to see available services.");
   if(countrySelect)countrySelect.value="";
+  const countrySearch=document.querySelector("#country-search");if(countrySearch)countrySearch.value="";
   void loadCountries();
  }
 }
