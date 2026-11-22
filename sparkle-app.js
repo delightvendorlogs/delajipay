@@ -149,14 +149,14 @@ function renderSelectedService(){
  quoteButton.addEventListener("click",async()=>{
   quoteButton.disabled=true;quoteButton.textContent="Checking…";result.textContent="";
   try{
-   const quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref});
+   const quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,engine:activeEngine});
    result.textContent="Price "+money(quote.customer_price_kobo);
    let buy=actions.querySelector("[data-buy-service]");
    if(!buy){buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.dataset.buyService="true";buy.textContent="Get this number";actions.append(buy);}
    buy.onclick=async()=>{
     if(!await askConfirm({title:"Confirm number purchase",message:"Get a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?",note:"Your wallet will only be charged if the provider confirms the order.",confirmText:"Continue to buy"}))return;
     buy.disabled=true;buy.textContent="Processing…";
-    try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref},{"Idempotency-Key":crypto.randomUUID()});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
+    try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref,engine:activeEngine},{"Idempotency-Key":crypto.randomUUID()});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
     catch(error){result.textContent=error.message||"The request could not be completed.";buy.disabled=false;buy.textContent="Try again";}
    };
   }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
@@ -166,14 +166,14 @@ function renderSelectedService(){
 }
 async function loadCountries(){
  if(!countrySelect)return;fillSelect(countrySelect,[],"Loading countries…",x=>x.code,x=>x.name,true);
- try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries"}});if(error)throw error;countries=data?.countries||[];renderCountries();const status=document.querySelector("#country-catalogue-status");if(status){status.hidden=false;status.textContent=data?.warnings?.length?data.warnings.join(" "):countries.length<=1?"Only one destination is currently being returned by the provider. More countries will appear when its live country inventory is available.":countries.length+" destinations available.";}}
+ try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries",engine:activeEngine}});if(error)throw error;countries=data?.countries||[];renderCountries();const status=document.querySelector("#country-catalogue-status");if(status){status.hidden=false;status.textContent=data?.warnings?.length?data.warnings.join(" "):countries.length<=1?"Only one destination is currently being returned by the provider. More countries will appear when its live country inventory is available.":countries.length+" destinations available.";}}
  catch(error){fillSelect(countrySelect,[],"Country list unavailable",x=>x.code,x=>x.name,true);console.warn("Country catalogue:",error);}
 }
 async function loadServices(country,name,mode=activeCatalog){
  if(!providersBox)return;const request=++catalogRequest;selectedCountry=country;selectedCountryName=name||country;selectedService=null;servicePicker?.clear();
  if(heading)heading.textContent=mode==="usa"?"USA services":selectedCountryName+" services";if(description)description.textContent="Choose a service to see its customer price.";
  fillSelect(serviceSelect,[],"Loading services…",x=>x.ref,x=>x.name,true);note(providersBox,"Loading available services…");
- try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
+ try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode,engine:activeEngine}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
  catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
