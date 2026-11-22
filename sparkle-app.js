@@ -127,7 +127,7 @@ async function loadServices(country,name,mode=activeCatalog){
  catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
 document.querySelectorAll("[data-catalog-tab]").forEach(button=>button.addEventListener("click",()=>setCatalog(button.dataset.catalogTab)));
-countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>c.code,c=>(c.flag?c.flag+" ":"")+c.name,c=>{if(countrySelect){countrySelect.value=c.code;countrySelect.dispatchEvent(new Event("change"));}});
+countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>c.code+" "+countryAliases(c),c=>(c.flag?c.flag+" ":"")+c.name,c=>{if(countrySelect){countrySelect.value=c.code;countrySelect.dispatchEvent(new Event("change"));}});
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>c.code===countrySelect.value);if(country)loadServices(country.code,country.name,"all");});
 servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}});
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
