@@ -128,3 +128,6 @@ body:not(.bjverify-site) a{color:#76dff4}
 .search-picker-option{display:block;width:100%;min-height:38px;padding:9px 11px;border:0;border-radius:7px;background:transparent;color:#e7f2ff;text-align:left;font:550 12px Manrope,sans-serif;cursor:pointer}
 .search-picker-option:hover,.search-picker-option:focus{background:#183654;outline:none;color:#a9efff}
 .search-picker-empty{padding:13px;color:#91a8c2;font-size:12px}
+
+#all-country-picker .catalogue-select-wrap,.service-select-wrap{grid-template-columns:minmax(0,1fr)}
+#all-country-picker .catalogue-select-wrap .app-field,.service-select-wrap .app-field{width:100%}
