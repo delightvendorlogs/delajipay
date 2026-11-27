@@ -155,10 +155,10 @@ function renderSelectedService(){
  const card=document.createElement("div");card.className="catalogue-selected-service";
  const details=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small");
  appendServiceIcon(title,service);title.append(document.createTextNode(service.name));
- meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" numbers currently available":"Availability is checked again before purchase";
+ meta.textContent=activeCatalog==="usa"?"Check the live TextVerified price and availability before purchase":service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" numbers currently available":"Availability is checked again before purchase";
  details.append(title,meta);
  const actions=document.createElement("div");actions.className="catalogue-service-actions";
- const quoteButton=document.createElement("button");quoteButton.type="button";quoteButton.className="app-button secondary";quoteButton.textContent="View price";quoteButton.disabled=service.available===false;
+ const quoteButton=document.createElement("button");quoteButton.type="button";quoteButton.className="app-button secondary";quoteButton.textContent="View price";quoteButton.disabled=activeCatalog!=="usa"&&service.available===false;
  const result=document.createElement("div");result.className="service-price-result";
  quoteButton.addEventListener("click",async()=>{
   quoteButton.disabled=true;quoteButton.textContent="Checking…";result.textContent="";

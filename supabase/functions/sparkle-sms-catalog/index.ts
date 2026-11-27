@@ -208,7 +208,7 @@ async function services(country: string, mode: string, includeProviderCode = fal
   else throw new Error("Choose a valid number destination.");
   const normalized = rows(data).map(normalizeService).filter(Boolean);
   const available = normalized;
-  const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,icon:item.icon,available:item.available,available_count:item.available_count,...(includeProviderCode?{code:item.code}: {})})));
+  const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,icon:item.icon,available:provider==="textverified"?true:item.available,available_count:provider==="textverified"?null:item.available_count,...(includeProviderCode?{code:item.code}: {})})));
   return { success:true, services:publicServices };
 }
 Deno.serve(async (req: Request) => {
