@@ -247,3 +247,9 @@ body:not(.bjverify-app) .tile{border:1px solid #2b4261;background:#10213b;border
  .profile-settings-grid{grid-template-columns:1fr}
 }
 
+
+/* Ledger row content grouping */
+.ledger-entry-main{display:grid;gap:4px;flex:1;min-width:0}
+.ledger-entry-main b{font-size:13px;color:#edf6ff;overflow-wrap:anywhere}
+.ledger-entry-main small{font-size:10px;color:#94aaca;overflow-wrap:anywhere}
+.ledger-entry-link>strong{margin-left:auto;text-align:right}
