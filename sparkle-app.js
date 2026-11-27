@@ -140,6 +140,7 @@ function sortServicesPopularFirst(services){
 function renderServices(data){
  if(!providersBox)return;serviceResults=sortServicesPopularFirst(data.services||[]);
  const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
+ if(description)description.textContent=serviceResults.length+" services received from "+(activeEngine==="1"&&activeCatalog==="all"&&selectedCountry==="US"?"FetchSMS":activeEngine==="2"?"SMSBower":activeCatalog==="usa"?"TextVerified":"the selected provider")+". Choose one to check its price and availability.";
  const services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
  const previous=serviceSelect?.value||"";
  fillSelect(serviceSelect,services,"Select a service",s=>s.ref,s=>s.name+(s.available===false?" · Out of stock":s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),!services.length);
@@ -227,7 +228,7 @@ async function loadServices(country,name,mode=activeCatalog,countryId=""){
  if(heading)heading.textContent=mode==="usa"?"USA services":selectedCountryName+" services";if(description)description.textContent="Choose a service to see its customer price.";
  fillSelect(serviceSelect,[],"Loading services…",x=>x.ref,x=>x.name,true);note(providersBox,"Loading available services…");
  try{const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"services",country,mode,engine:activeEngine,country_id:countryId}});if(error)throw error;if(request!==catalogRequest)return;renderServices(data||{services:[]});}
- catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
+ catch(error){if(request===catalogRequest){fillSelect(serviceSelect,[],"Services unavailable",x=>x.ref,x=>x.name,true);note(providersBox,error instanceof Error?error.message:"We couldn't load services. Please try again shortly.");}console.warn("Service catalogue:",error);}
 }
 window.addEventListener("bjverify:catalog-request",event=>setCatalog(event.detail==="all"?"all":"usa"));
 window.addEventListener("bjverify:engine-request",event=>setEngine(event.detail==="2"?"2":"1"));
