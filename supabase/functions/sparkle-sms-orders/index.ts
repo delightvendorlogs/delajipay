@@ -113,7 +113,7 @@ async function quote(provider:string,country:string,service:string,serviceName:s
   if(["fetchsms","textverified"].includes(provider)&&country!=="US")throw new Error("This provider only supplies United States numbers.");
   let providerUsd=0,available=true,availabilityCount:number|null=null;
   if(provider==="fetchsms"){
-    if(!/^\d+$/.test(service))throw new Error("Please refresh the service list and choose a service again.");
+    if(!/^[A-Za-z0-9_-]+$/.test(service))throw new Error("Please refresh the service list and choose a service again.");
     // Catalogue stock counts can lag. The live purchase endpoint is the stock authority.
     const [q,fx]=await Promise.all([
       fetchRequest("/services/quote?service="+encodeURIComponent(service)+"&mode=short",{},false),
