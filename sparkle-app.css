@@ -179,3 +179,71 @@ body:not(.bjverify-site) a{color:#76dff4}
 .sms-pool-options{display:grid;gap:12px;margin:16px 0;width:100%}.sms-pool-heading{display:grid;gap:4px}.sms-pool-heading strong{font-size:.98rem}.sms-pool-heading small{color:var(--app-muted,#9aa8bc);font-size:.82rem;line-height:1.45}.sms-pool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px}.sms-pool-option{display:grid;gap:8px;width:100%;min-width:0;text-align:left;padding:13px;border:1px solid var(--app-border,rgba(255,255,255,.14));border-radius:14px;background:var(--app-card,rgba(255,255,255,.04));color:inherit;font:inherit;cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .18s ease}.sms-pool-option[aria-pressed=true]{border-color:var(--app-accent,#b9f5ff);background:color-mix(in srgb,var(--app-accent,#b9f5ff) 10%,var(--app-card,rgba(255,255,255,.04)));box-shadow:0 0 0 1px color-mix(in srgb,var(--app-accent,#b9f5ff) 28%,transparent)}.sms-pool-option-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.sms-pool-option-top strong{font-size:.9rem}.sms-pool-selected{font-size:.72rem;font-weight:700;color:var(--app-accent,#b9f5ff)}.sms-pool-price{font-size:1.12rem;line-height:1.2}.sms-pool-stock{color:var(--app-muted,#9aa8bc);font-size:.8rem}.sms-pool-option:disabled{opacity:.55;cursor:wait}
 
 .sms-pool-current{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid var(--app-accent,#b9f5ff);border-radius:14px;background:color-mix(in srgb,var(--app-accent,#b9f5ff) 9%,var(--app-card,rgba(255,255,255,.04)))}.sms-pool-current[hidden]{display:none!important}.sms-pool-current-info{display:grid;gap:5px;min-width:0}.sms-pool-current-info strong{font-size:.94rem}.sms-pool-current-info small{color:var(--app-muted,#9aa8bc);font-size:.8rem;line-height:1.4}.sms-pool-change{flex:0 0 auto;white-space:nowrap;padding:9px 12px;font-size:.82rem}.sms-pool-grid[hidden]{display:none!important}
+
+
+/* Unified BJVERIFY account shell and customer menu */
+body.bjverify-app .app-header{position:sticky;z-index:80}
+body.bjverify-app .app-brand-mark,.brand .brand-mark{width:38px;height:38px;flex:0 0 38px;border-radius:12px;display:grid;place-items:center}
+body.bjverify-app .app-brand-mark svg,.brand .brand-mark svg{width:24px;height:24px;display:block}
+body.bjverify-app .app-mobile-menu{width:42px;height:42px;display:none;align-items:center;justify-content:center;cursor:pointer;font-size:22px;line-height:1}
+@media(max-width:760px){
+ body.bjverify-app .app-header{justify-content:space-between}
+ body.bjverify-app .app-mobile-menu{display:flex}
+ body.bjverify-app .app-nav{z-index:90;max-height:calc(100vh - 82px);overflow:auto}
+ body.bjverify-app .app-nav a{display:block}
+}
+body:not(.bjverify-app) .customer-menu summary{width:42px;height:42px;display:flex;align-items:center;justify-content:center;padding:8px;border:1px solid #38516f;background:#102541;color:#dff7ff;border-radius:12px}
+body:not(.bjverify-app) .customer-menu summary svg{width:23px;height:23px}
+body:not(.bjverify-app) .customer-menu-panel{background:#10213b;border-color:#36516f;box-shadow:0 18px 48px #0008}
+body:not(.bjverify-app) .customer-menu-title{color:#8fa8c6}
+body:not(.bjverify-app) .customer-menu-panel a,body:not(.bjverify-app) .customer-menu-panel button{color:#eaf3ff}
+body:not(.bjverify-app) .customer-menu-panel a:hover,body:not(.bjverify-app) .customer-menu-panel button:hover{background:#183452;color:#80e2f6}
+body:not(.bjverify-app) .customer-menu-divider{background:#2b4261}
+body:not(.bjverify-app) .customer-menu-backdrop{background:#02091499}
+.wallet{max-width:100%;padding:24px;background:radial-gradient(circle at 88% 8%,#4bc9ef25,transparent 35%),linear-gradient(135deg,#173c60,#102541 75%);border:1px solid #3d7195;border-radius:18px;box-shadow:0 16px 38px #0003}
+.wallet-head{display:flex;align-items:center;justify-content:space-between;color:#b8d5ed;font-size:12px;font-weight:700}
+.wallet-head svg{width:25px;height:25px;stroke:#8de9fb;fill:none;stroke-width:1.7}
+.wallet h2{font:800 clamp(28px,5vw,38px) Manrope,sans-serif;letter-spacing:-1px;color:#f5fbff;margin:10px 0 5px}
+.wallet small{color:#a7bfd7}
+.wallet-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.wallet-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 15px;border-radius:10px;background:linear-gradient(110deg,#60a5fa,#22d3ee);color:#07162b!important;font-size:12px;font-weight:800}
+.wallet-actions a+ a{background:#173a59;border:1px solid #426887;color:#dff7ff!important}
+body:not(.bjverify-app) .panel{border-radius:16px}
+body:not(.bjverify-app) .tile{border:1px solid #2b4261;background:#10213b;border-radius:12px;padding:15px}
+.transaction-toolbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.transaction-list,.ledger-list{display:grid;gap:10px}
+.transaction-row,.ledger-entry-link{display:flex;align-items:center;gap:13px;padding:14px;border:1px solid #2b4261;border-radius:13px;background:#10213b;color:#eaf3ff!important;text-decoration:none!important;transition:border-color .16s,transform .16s}
+.transaction-row:hover,.ledger-entry-link:hover{border-color:#4b91b8;transform:translateY(-1px)}
+.transaction-row:before,.ledger-entry-link:before{content:"↗";width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:12px;background:#123f48;color:#75e0c0;font-size:20px;font-weight:800}
+.transaction-debit:before,.ledger-debit .ledger-entry-link:before{content:"↘";background:#472c3a;color:#ffb4c2}
+.transaction-main{display:grid;gap:4px;min-width:0;flex:1}
+.transaction-main strong,.ledger-entry-link>b{font-size:13px;color:#edf6ff}
+.transaction-main span,.transaction-main small,.ledger-entry-link small{font-size:10px;color:#94aaca}
+.transaction-row> b,.ledger-entry-link>strong{font-size:13px;white-space:nowrap}
+.amount-in{color:#79e4c0!important}.amount-out{color:#ff9dab!important}
+.receipt-panel{max-width:620px;margin:18px auto;padding:25px}
+.receipt-amount{font:800 32px Manrope;color:#f2f8ff;margin-bottom:8px}
+.receipt-details{display:grid;gap:0;margin:18px 0}
+.receipt-details>div{display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-top:1px solid #2b4261}
+.receipt-details dt{color:#91a8c5;font-size:11px}.receipt-details dd{margin:0;color:#eaf3ff;font-size:12px;text-align:right;overflow-wrap:anywhere}
+.profile-avatar{width:66px;height:66px;border-radius:20px;background:linear-gradient(135deg,#237ca3,#1c4e75)!important;color:#e9fbff!important;box-shadow:0 10px 25px #0004;font:800 21px Manrope}
+.profile-hero{padding:10px 0 20px}
+.profile-identity strong{color:#f2f8ff}.profile-identity small{color:#9aafc9}
+.profile-section h2{color:#f2f8ff}
+.profile-action{border-color:#2b4261}
+.profile-action strong{color:#eaf3ff}
+.profile-action small{color:#91a8c5}
+.profile-form input{background:#0a1830!important;color:#eef6ff!important;border:1px solid #38516f!important;border-radius:9px;padding:11px 12px}
+.profile-form label{color:#c5d5e8;font-size:12px;font-weight:650}
+.profile-form h3{color:#edf6ff}
+.profile-page .topbar .brand .brand-mark{width:38px;height:38px;min-width:38px;flex:0 0 38px}
+.profile-page .topbar .brand .brand-word{font-size:20px;color:#f0f7ff}
+@media(max-width:650px){
+ body:not(.bjverify-app) .container{padding-left:16px;padding-right:16px}
+ .wallet{padding:20px}
+ .transaction-row{padding:12px;gap:10px}
+ .transaction-row:before{width:34px;height:34px;flex-basis:34px}
+ .transaction-row> b{font-size:12px}
+ .profile-settings-grid{grid-template-columns:1fr}
+}
+
