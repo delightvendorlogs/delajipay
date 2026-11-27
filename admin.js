@@ -27,13 +27,16 @@ if (sessionError || !session) {
 }
 
 async function loadOverview() {
-  const [profiles, funding, ledger] = await Promise.all([
+  const [profiles, funding, ledger, vtuOrders, smsOrders, board] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("funding_transactions").select("amount_kobo,status,created_at").order("created_at", { ascending: false }).limit(5000),
-    supabase.from("wallet_ledger").select("id,entry_type,amount_kobo,description,status,created_at").order("created_at", { ascending: false }).limit(12)
+    supabase.from("wallet_ledger").select("id,entry_type,amount_kobo,description,status,created_at").order("created_at", { ascending: false }).limit(12),
+    supabase.from("service_orders").select("status").limit(5000),
+    supabase.from("sparkle_sms_orders").select("status").limit(5000),
+    supabase.from("platform_settings").select("sms_board_config").eq("singleton", true).maybeSingle()
   ]);
 
-  const failures = [profiles, funding, ledger].filter(result => result.error);
+  const failures = [profiles, funding, ledger, vtuOrders, smsOrders, board].filter(result => result.error);
   if (failures.length) {
     showError("Some dashboard information could not be loaded. Check admin access and database permissions, then refresh.");
   }
@@ -42,7 +45,9 @@ async function loadOverview() {
   const successfulFunding = fundRows.filter(row => row.status === "successful");
   const postedCredits = (ledger.data || []).filter(row => row.entry_type === "credit" && row.status === "posted");
   const totalFundedKobo = successfulFunding.reduce((sum, row) => sum + Number(row.amount_kobo || 0), 0);
-  const pendingPayments = fundRows.filter(row => ["initiated", "pending"].includes(row.status)).length;
+  const pendingPayments = fundRows.filter(row => ["initiated", "pending"].includes(String(row.status).toLowerCase())).length
+    + (vtuOrders.data || []).filter(row => ["initiated", "pending", "processing", "waiting", "unknown", "creating"].includes(String(row.status).toLowerCase())).length
+    + (smsOrders.data || []).filter(row => ["initiated", "pending", "processing", "waiting", "unknown", "creating"].includes(String(row.status).toLowerCase())).length;
 
   setText("#stat-customers", profiles.count == null ? "—" : profiles.count.toLocaleString("en-NG"));
   setText("#stat-funding", money(totalFundedKobo));
@@ -53,11 +58,22 @@ async function loadOverview() {
   const serviceList = $("#admin-services");
   if (serviceList) {
     serviceList.replaceChildren();
-    for (const provider of ["Fetch SMS · USA", "Test Verified Virtual SMS · USA", "Virtual Number · International"]) {
+    const config = board.data?.sms_board_config || {};
+    const server1 = config.servers?.server1?.enabled !== false;
+    const server2 = config.servers?.server2?.enabled !== false;
+    const routes = [
+      { name: "USA tab · TestVerified", detail: "Dedicated USA catalogue", enabled: true },
+      { name: "All Countries · Server 1", detail: "VirtualSMS international · FetchSMS for USA", enabled: server1 },
+      { name: "All Countries · Server 2", detail: "SMSBower pool inventory", enabled: server2 }
+    ];
+    for (const route of routes) {
       const item = document.createElement("div"); item.className = "admin-service-row";
-      const name = document.createElement("strong"); name.textContent = provider;
-      const status = document.createElement("span"); status.className = "pill inactive"; status.textContent = "API setup pending";
-      item.append(name, status); serviceList.append(item);
+      const detail = document.createElement("div");
+      const name = document.createElement("strong"); name.textContent = route.name;
+      const meta = document.createElement("small"); meta.textContent = route.detail;
+      detail.append(name, meta);
+      const status = document.createElement("span"); status.className = "pill " + (route.enabled ? "active" : "inactive"); status.textContent = route.enabled ? "Enabled" : "Disabled";
+      item.append(detail, status); serviceList.append(item);
     }
   }
 
