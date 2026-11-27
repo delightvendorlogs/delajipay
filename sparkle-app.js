@@ -68,7 +68,13 @@ function countryAliases(country){
 
 let countryPicker,servicePicker;
 function setEngine(engine){
- activeEngine=engine==="2"?"2":"1";
+ let requested=engine==="2"?"2":"1";
+ const availability=window.__bjverifyServerAvailability;
+ if(availability&&!availability["server"+requested]){
+  if(availability.server1)requested="1";else if(availability.server2)requested="2";
+  else {activeEngine=requested;document.querySelectorAll("[data-engine-tab]").forEach(button=>{button.hidden=true;button.disabled=true;});fillSelect(countrySelect,[],"Both servers are currently unavailable",x=>x.code,x=>x.name,true);note(providersBox,"All-country number services are temporarily unavailable. Please check back later.");return;}
+ }
+ activeEngine=requested;
  document.querySelectorAll("[data-engine-tab]").forEach(button=>button.setAttribute("aria-selected",String(button.dataset.engineTab===activeEngine)));
  catalogRequest++;selectedService=null;servicePicker?.clear();countryPicker?.clear();
  selectedCountry="";selectedCountryName="";
@@ -269,7 +275,7 @@ async function syncAdminServerVisibility(){
  try{
   const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"board-status"}});
   if(error||!data?.servers)return;
-  const enabled1=data.servers.server1!==false,enabled2=data.servers.server2!==false;
+  const enabled1=data.servers.server1!==false,enabled2=data.servers.server2!==false;\n  window.__bjverifyServerAvailability={server1:enabled1,server2:enabled2};
   tabs.forEach(button=>{const enabled=button.dataset.engineTab==="2"?enabled2:enabled1;button.hidden=!enabled;button.disabled=!enabled;});
   if(activeCatalog==="all"&&((activeEngine==="1"&&!enabled1)||(activeEngine==="2"&&!enabled2))){
    if(enabled1||enabled2)setEngine(enabled1?"1":"2");
