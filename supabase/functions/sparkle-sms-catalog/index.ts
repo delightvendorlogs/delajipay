@@ -83,8 +83,8 @@ function normalizeService(item: any) {
   return {
     code, name,
     icon: str(item?.icon_url, item?.iconUrl, item?.icon, item?.logo_url, item?.logoUrl, item?.logo),
-    available: item?.available !== false && (item?.short_available === undefined || Number(item.short_available) > 0),
-    available_count: Number.isFinite(Number(item?.short_available ?? item?.available_count ?? item?.stock ?? item?.quantity)) ? Number(item.short_available ?? item.available_count ?? item.stock ?? item.quantity) : null,
+    available: item?.available !== false && ((item?.short_available ?? item?.available_count ?? item?.stock ?? item?.quantity) == null || Number(item?.short_available ?? item?.available_count ?? item?.stock ?? item?.quantity) > 0),
+    available_count: (item?.short_available ?? item?.available_count ?? item?.stock ?? item?.quantity) == null ? null : (Number.isFinite(Number(item.short_available ?? item.available_count ?? item.stock ?? item.quantity)) ? Number(item.short_available ?? item.available_count ?? item.stock ?? item.quantity) : null),
     price_hint: Number.isFinite(Number(item?.price_cents ?? item?.price)) ? Number(item.price_cents ?? item.price) / 100 : null,
   };
 }
@@ -207,7 +207,7 @@ async function services(country: string, mode: string, includeProviderCode = fal
   }
   else throw new Error("Choose a valid number destination.");
   const normalized = rows(data).map(normalizeService).filter(Boolean);
-  const available = provider === "fetchsms" ? normalized.filter((item:any)=>item.available) : normalized;
+  const available = normalized;
   const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,icon:item.icon,available:item.available,available_count:item.available_count,...(includeProviderCode?{code:item.code}: {})})));
   return { success:true, services:publicServices };
 }

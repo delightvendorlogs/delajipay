@@ -120,8 +120,9 @@ async function quote(provider:string,country:string,service:string,serviceName:s
       fxRate()
     ]);
     const item=rows(catalog).find((x:any)=>String(x.id)===service);
-    availabilityCount=num(item?.short_available);
-    available=true;
+    if(!item)throw new Error("This Fetch SMS service is no longer listed. Please refresh the service list.");
+    availabilityCount=item.short_available==null?null:num(item.short_available,-1);
+    available=availabilityCount===null||availabilityCount>0;
     providerUsd=num(q?.total_cents,-1)/100;
     if(providerUsd<0)throw new Error("Fetch SMS did not return a valid price.");
     const rule=await pricingRule(provider,country,service);

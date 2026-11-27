@@ -168,17 +168,41 @@ function renderSelectedService(){
    result.textContent="Price "+money(quote.customer_price_kobo);
    let poolPicker=actions.querySelector("[data-pool-picker]");if(poolPicker)poolPicker.remove();
    if(activeEngine==="2"&&Array.isArray(quote.pools)&&quote.pools.length){
-    poolPicker=document.createElement("div");poolPicker.dataset.poolPicker="true";poolPicker.className="sms-pool-options";poolPicker.setAttribute("aria-label","Selected SMSBower pool");
+    poolPicker=document.createElement("section");poolPicker.dataset.poolPicker="true";poolPicker.className="sms-pool-options";poolPicker.setAttribute("aria-label","Choose an SMSBower number pool");
     selectedPoolId=quote.selected_pool_id||quote.pools[0].id;
-    const selectedPool=quote.pools.find(pool=>String(pool.id)===String(selectedPoolId))||quote.pools[0];
-    const current=document.createElement("div");current.className="sms-pool-current";
-    const currentLabel=document.createElement("span");currentLabel.className="sms-pool-current-label";currentLabel.textContent=selectedPool.label+" · "+money(selectedPool.customerPriceKobo)+" · "+selectedPool.stock+" available";
-    current.append(currentLabel);
-    const change=document.createElement("button");change.type="button";change.className="sms-pool-change";change.textContent="Change pool";
-    const choices=document.createElement("div");choices.className="sms-pool-choices";choices.hidden=true;
-    change.addEventListener("click",()=>{choices.hidden=!choices.hidden;change.textContent=choices.hidden?"Change pool":"Hide pools";});
-    quote.pools.forEach(pool=>{if(String(pool.id)===String(selectedPoolId))return;const option=document.createElement("button");option.type="button";option.className="sms-pool-option";option.textContent=pool.label+" · "+money(pool.customerPriceKobo)+" · "+pool.stock+" available";option.addEventListener("click",async()=>{selectedPoolId=pool.id;change.disabled=true;try{quote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,pool_id:selectedPoolId,engine:activeEngine});currentLabel.textContent=pool.label+" · "+money(pool.customerPriceKobo)+" · "+pool.stock+" available";result.textContent="Price "+money(quote.customer_price_kobo);choices.hidden=true;change.textContent="Change pool";}catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}finally{change.disabled=false;}});choices.append(option);});
-    current.append(change);poolPicker.append(current,choices);actions.insertBefore(poolPicker,result);result.textContent="Price "+money(quote.customer_price_kobo);
+    const poolHeading=document.createElement("div");poolHeading.className="sms-pool-heading";
+    const poolTitle=document.createElement("strong");poolTitle.textContent="Choose a number pool";
+    const poolHint=document.createElement("small");poolHint.textContent="Compare the price and available numbers, then select the option you prefer.";
+    poolHeading.append(poolTitle,poolHint);
+    const poolGrid=document.createElement("div");poolGrid.className="sms-pool-grid";
+    const poolButtons=[];
+    quote.pools.forEach((pool,index)=>{
+     const option=document.createElement("button");option.type="button";option.className="sms-pool-option";option.setAttribute("aria-pressed",String(String(pool.id)===String(selectedPoolId)));
+     const top=document.createElement("span");top.className="sms-pool-option-top";
+     const name=document.createElement("strong");name.textContent=pool.label||("Pool "+(index+1));
+     const selected=document.createElement("span");selected.className="sms-pool-selected";selected.textContent=String(pool.id)===String(selectedPoolId)?"Selected":"Select";
+     top.append(name,selected);
+     const price=document.createElement("strong");price.className="sms-pool-price";price.textContent=money(pool.customerPriceKobo);
+     const stock=document.createElement("small");stock.className="sms-pool-stock";stock.textContent=Number(pool.stock).toLocaleString()+" numbers available";
+     option.append(top,price,stock);
+     option.addEventListener("click",async()=>{
+      if(String(pool.id)===String(selectedPoolId))return;
+      poolButtons.forEach(button=>button.disabled=true);
+      try{
+       const nextQuote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,pool_id:pool.id,engine:activeEngine});
+       quote=nextQuote;selectedPoolId=nextQuote.selected_pool_id||pool.id;
+       poolButtons.forEach(button=>{
+        const active=String(button.dataset.poolId)===String(selectedPoolId);
+        button.setAttribute("aria-pressed",String(active));
+        const tag=button.querySelector(".sms-pool-selected");if(tag)tag.textContent=active?"Selected":"Select";
+       });
+       result.textContent="Price "+money(quote.customer_price_kobo);
+      }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
+      finally{poolButtons.forEach(button=>button.disabled=false);}
+     });
+     option.dataset.poolId=String(pool.id);poolButtons.push(option);poolGrid.append(option);
+    });
+    poolPicker.append(poolHeading,poolGrid);actions.insertBefore(poolPicker,result);result.textContent="Price "+money(quote.customer_price_kobo);
    }
    let buy=actions.querySelector("[data-buy-service]");
    if(!buy){buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.dataset.buyService="true";buy.textContent="Get this number";actions.append(buy);}
@@ -209,7 +233,7 @@ window.addEventListener("bjverify:catalog-request",event=>setCatalog(event.detai
 window.addEventListener("bjverify:engine-request",event=>setEngine(event.detail==="2"?"2":"1"));
 countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>(c.key||c.code)+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{if(countrySelect){countrySelect.value=c.key||c.code;countrySelect.dispatchEvent(new Event("change"));}});
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>(c.key||c.code)===countrySelect.value);if(country)loadServices(country.code,country.name,"all",country.id||"");});
-servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}},s=>s);
+servicePicker=mountSearchPicker("service-search","service-picker-list",()=>serviceResults,s=>s.ref,s=>s.name+(s.available===false?" · Out of stock":s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),s=>{if(serviceSelect){serviceSelect.value=s.ref;serviceSelect.dispatchEvent(new Event("change"));}},s=>s);
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
 const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
 if(countrySelect){const params=new URLSearchParams(location.search);setCatalog(params.get("tab")==="all"?"all":"usa");if(params.get("tab")==="all"){const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();countryPicker?.render();}}}
