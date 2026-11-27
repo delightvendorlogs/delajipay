@@ -95,6 +95,7 @@ async function loadPools(){
  box.innerHTML='<div class="app-empty">Loading live pools…</div>';
  try{
   const data=await invoke("sparkle-sms-orders",{action:"admin-pools",catalogue:"all",country_iso:country,service_ref:service.ref});
+  $("pool-preferred-tier").value=config.preferred_tiers?.["server2|"+country+"|"+service.code]||"";
   box.replaceChildren();
   if(!data.pools?.length){const e=document.createElement("div");e.className="app-empty";e.textContent="No live pools were returned for this service.";box.append(e);return;}
   for(const pool of data.pools){
@@ -114,7 +115,10 @@ async function loadPools(){
    const fixedLabel=document.createElement("label");fixedLabel.textContent="Fixed price ₦";const fixed=document.createElement("input");fixed.type="number";fixed.min="1";fixed.step="0.01";const saved=config.pool_pricing?.["server2|"+country+"|"+service.code+"|"+pool.id];fixed.value=saved?.fixed_price_kobo?String(Number(saved.fixed_price_kobo)/100):"";fixedLabel.append(fixed);
    const save=document.createElement("button");save.type="button";save.className="btn";save.textContent="Save pool price";
    save.addEventListener("click",async()=>{save.disabled=true;try{await saveBoard({kind:"pool-pricing",country_iso:country,service_code:service.code,pool_id:String(pool.id),pricing_mode:mode.value,markup_percent:Number(markup.value),fixed_price_ngn:Number(fixed.value)});note("Pool-specific price saved.","success");await loadPools();}catch(e){note(e.message,"error");save.disabled=false;}});
-   price.append(modeLabel,markupLabel,fixedLabel,save);row.append(detail,actions,price);box.append(row);
+   const tierLabel=document.createElement("label");tierLabel.textContent="Admin tier";const tier=document.createElement("input");tier.type="text";tier.maxLength=40;tier.placeholder="e.g. economy";tier.value=pool.tier||"";tierLabel.append(tier);
+   const saveTier=document.createElement("button");saveTier.type="button";saveTier.className="btn secondary";saveTier.textContent="Save tier";
+   saveTier.addEventListener("click",async()=>{saveTier.disabled=true;try{await saveBoard({kind:"pool-tier",server_key:"server2",country_iso:country,service_code:service.code,pool_id:String(pool.id),tier:tier.value.trim()});note("Pool tier saved.","success");await loadPools();}catch(e){note(e.message,"error");saveTier.disabled=false;}});
+   price.append(modeLabel,markupLabel,fixedLabel,save,tierLabel,saveTier);row.append(detail,actions,price);box.append(row);
   }
  }catch(e){box.innerHTML='<div class="app-empty"></div>';box.firstElementChild.textContent=e.message;note(e.message,"error");}
 }
@@ -152,6 +156,14 @@ $("save-server-price").addEventListener("click",async()=>{
 $("pool-country").addEventListener("change",async()=>{try{await loadPoolServices();$("pool-list").innerHTML='<div class="app-empty">Choose a service and load its pools.</div>';}catch(e){note(e.message,"error");}});
 $("pool-service").addEventListener("change",()=>{$("pool-list").innerHTML='<div class="app-empty">Press Load pools to view this service inventory.</div>';});
 $("load-pools").addEventListener("click",loadPools);
+$("save-preferred-tier").addEventListener("click",async()=>{
+ const country=$("pool-country").value,service=serviceByRef($("pool-service"));
+ if(!service){note("Choose a Server 2 service first.","error");return;}
+ const button=$("save-preferred-tier");button.disabled=true;
+ try{await saveBoard({kind:"preferred-tier",server_key:"server2",country_iso:country,service_code:service.code,tier:$("pool-preferred-tier").value.trim()});note("Preferred pool tier saved. Matching pools will be prioritised for customers.","success");await loadPools();}
+ catch(e){note(e.message,"error");}
+ finally{button.disabled=false;}
+});
 await adminCheck();
 try{await loadConfig();await setupSelects();$("server-price-mode").dispatchEvent(new Event("change"));note("SMS board settings loaded. Server, service, pool and pricing controls are ready.","success");}
 catch(e){note(e.message||"The SMS board could not be loaded.","error");}
