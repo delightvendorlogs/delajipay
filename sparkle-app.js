@@ -254,7 +254,11 @@ async function loadServices(country,name,mode=activeCatalog,countryId=""){
 }
 window.addEventListener("bjverify:catalog-request",event=>setCatalog(event.detail==="all"?"all":"usa"));
 window.addEventListener("bjverify:engine-request",event=>setEngine(event.detail==="2"?"2":"1"));
-countryPicker=null;document.querySelector("#country-search")?.addEventListener("input",renderCountries);
+countryPicker=mountSearchPicker("country-search","country-picker-list",()=>countries,c=>c.key||c.code,c=>countryFlag(c.code)+" "+c.name,c=>{
+  if(countrySelect)countrySelect.value=c.key||c.code;
+  void loadServices(c.code,c.name,"all",c.id||"");
+ });
+ document.querySelector("#country-search")?.addEventListener("input",renderCountries);
 countrySelect?.addEventListener("change",()=>{const country=countries.find(c=>(c.key||c.code)===countrySelect.value);if(country)loadServices(country.code,country.name,"all",country.id||"");});
 servicePicker=null;document.querySelector("#service-search")?.addEventListener("input",()=>renderServices({services:serviceResults}));
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
@@ -315,22 +319,30 @@ let adminCountries=[{code:"*",name:"All countries (*)"}],adminServices=[{code:"*
 async function loadAdminPricingCatalog(){
  const countryInput=document.querySelector("#pricing-country-search"),serviceInput=document.querySelector("#pricing-service-search");
  if(!countryInput||!serviceInput)return;
+ // Mount immediately so the country control responds even while the catalogue is loading.
+ if(!pricingCountryPicker){
+  pricingCountryPicker=mountSearchPicker("pricing-country-search","pricing-country-list",()=>adminCountries.filter(c=>c.code==="*"||(document.querySelector("#pricing-provider")?.value==="virtualsms"?c.code!=="US":document.querySelector("#pricing-provider")?.value==="smsbower"?true:c.code==="US")),c=>c.code+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{
+   document.querySelector("#pricing-country").value=c.code;
+   void loadAdminPricingServices();
+  });
+ }
+ if(!pricingServicePicker){
+  pricingServicePicker=mountSearchPicker("pricing-service-search","pricing-service-list",()=>adminServices,s=>s.code,s=>s.name,s=>{
+   document.querySelector("#pricing-service").value=s.code;
+  },s=>s.code==="*"?null:s);
+ }
+ countryInput.placeholder="Loading countries…";
  try{
   const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"countries",engine:document.querySelector("#pricing-provider")?.value==="smsbower"?"2":"1"}});
   if(error)throw error;
   adminCountries=[{code:"*",name:"All countries (*)"},...(data?.countries||[])];
  }catch(error){console.warn("Admin country catalogue:",error);}
- pricingCountryPicker=mountSearchPicker("pricing-country-search","pricing-country-list",()=>adminCountries.filter(c=>c.code==="*"||(document.querySelector("#pricing-provider")?.value==="virtualsms"?c.code!=="US":document.querySelector("#pricing-provider")?.value==="smsbower"?true:c.code==="US")),c=>c.code+" "+countryAliases(c),c=>countryFlag(c.code)+" "+c.name,c=>{
-  document.querySelector("#pricing-country").value=c.code;
-  void loadAdminPricingServices();
- });
- pricingServicePicker=mountSearchPicker("pricing-service-search","pricing-service-list",()=>adminServices,s=>s.code,s=>s.name,s=>{
-  document.querySelector("#pricing-service").value=s.code;
- },s=>s.code==="*"?null:s);
+ pricingCountryPicker.render();
  const countryValue=document.querySelector("#pricing-country").value||"*";
  const initial=adminCountries.find(c=>c.code===countryValue)||adminCountries[0];
  document.querySelector("#pricing-country").value=initial.code;
- pricingCountryPicker.setValue(initial.code==="*"?"\uD83C\uDF0D "+initial.name:countryFlag(initial.code)+" "+initial.name);
+ pricingCountryPicker.setValue(initial.code==="*"?"🌍 "+initial.name:countryFlag(initial.code)+" "+initial.name);
+ countryInput.placeholder="Choose or search country…";
  await loadAdminPricingServices();
 }
 async function loadAdminPricingServices(){
