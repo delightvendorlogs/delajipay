@@ -343,6 +343,81 @@ if (updatePasswordForm) {
   });
 }
 
+// Shared customer navigation: one menu across the legacy and app-style page shells.
+const customerMenuLinks = [
+  ["dashboard.html","Dashboard"],["numbers.html","Buy a number"],["inbox.html","SMS inbox"],
+  ["wallet.html","Wallet"],["wallet-history.html","Wallet activity"],["transactions.html","Transactions"],
+  ["notifications.html","Notifications"],["support.html","Live chat support"],["referrals.html","Refer & earn"],
+  ["profile.html","Profile"]
+];
+const currentCustomerFile = (window.location.pathname.split("/").pop() || "dashboard.html").toLowerCase();
+const isAdminPage = document.body.dataset.adminOnly === "true";
+if (!onAuthPage && !isAdminPage) {
+  const appHeader = document.querySelector(".app-header");
+  const topbar = document.querySelector(".topbar");
+  const nav = (appHeader || topbar)?.querySelector(".app-nav");
+  if (nav) {
+    // Ensure every app-shell hamburger actually opens the navigation.
+    const appToggle = appHeader?.querySelector(".app-mobile-menu");
+    if (appToggle) {
+      appToggle.addEventListener("click", () => {
+        const open = nav.classList.toggle("open");
+        appToggle.setAttribute("aria-expanded", String(open));
+        appToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        appToggle.textContent = open ? "×" : "☰";
+      });
+    }
+    // Add quick destinations to the existing app navigation without duplicating links.
+    if (appHeader) {
+      for (const [href,label] of customerMenuLinks) {
+        if (!nav.querySelector('a[href="' + href + '"]')) {
+          const link = document.createElement("a");
+          link.href = href;
+          link.textContent = label;
+          nav.insertBefore(link, nav.querySelector("[data-signout]") || null);
+        }
+      }
+    }
+    if (topbar && !topbar.querySelector(".customer-menu")) {
+      const details = document.createElement("details");
+      details.className = "customer-menu";
+      details.innerHTML = '<summary aria-label="Open menu" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menu</span></summary><div class="customer-menu-backdrop"></div><div class="customer-menu-panel"><div class="customer-menu-title">BJVERIFY MENU</div></div>';
+      const panel = details.querySelector(".customer-menu-panel");
+      for (const [href,label] of customerMenuLinks) {
+        const link = document.createElement("a");
+        link.href = href;
+        link.textContent = label;
+        if (href === currentCustomerFile || (currentCustomerFile.startsWith("wallet") && href === "wallet.html") || (currentCustomerFile.startsWith("transaction") && href === "transactions.html")) link.setAttribute("aria-current","page");
+        panel.append(link);
+      }
+      const divider = document.createElement("div");
+      divider.className = "customer-menu-divider";
+      panel.append(divider);
+      const signout = document.createElement("button");
+      signout.type = "button";
+      signout.dataset.signout = "";
+      signout.textContent = "Sign out";
+      panel.append(signout);
+      details.querySelector(".customer-menu-backdrop").addEventListener("click", () => { details.open = false; });
+      topbar.insertBefore(details, topbar.firstChild);
+    }
+    // Replace inconsistent text-only marks with the same compact brand lockup.
+    const brand = (appHeader || topbar)?.querySelector(".app-brand, .brand");
+    if (brand && !brand.querySelector(".app-brand-mark,.brand-mark")) {
+      const label = brand.textContent.trim().replace(/\\s+/g," ") || "BJVERIFY";
+      brand.replaceChildren();
+      const mark = document.createElement("span");
+      mark.className = appHeader ? "app-brand-mark" : "brand-mark";
+      mark.setAttribute("aria-hidden","true");
+      mark.innerHTML = '<svg viewBox="0 0 40 40"><rect x="10.5" y="3.5" width="19" height="33" rx="4.2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.5 8h9M17 31.5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m15.5 20.5 3.5 3.5 6.5-7" fill="none" stroke="#b9f5ff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      const word = document.createElement("span");
+      word.className = appHeader ? "app-brand-word" : "brand-word";
+      word.textContent = label;
+      brand.append(mark,word);
+    }
+  }
+}
+
 document.querySelectorAll("[data-signout]").forEach((button) => {
   button.addEventListener("click", async () => { await supabase.auth.signOut(); go("login.html"); });
 });
