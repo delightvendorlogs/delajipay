@@ -43,3 +43,6 @@ body[data-admin-only] .chat-composer-bar textarea{background:transparent!importa
 .admin-nav-menu-panel a:hover,.admin-nav-menu-panel a[aria-current=page]{background:#183452;color:#80e2f6!important}
 .admin-nav-menu-panel .admin-nav-external{grid-column:1/-1;border-top:1px solid #2b4261;margin-top:5px;padding-top:12px}
 @media(max-width:760px){body[data-admin-only] .topbar{padding:0 14px;gap:9px}body[data-admin-only] .topbar .brand{font-size:17px}.admin-nav-menu>summary{padding:8px 10px}.admin-nav-menu-panel{right:-5px}}
+
+body[data-admin-only] .btn.secondary,body[data-admin-only] button.secondary{background:#1b3552!important;border:1px solid #426080!important;color:#eaf3ff!important}
+body[data-admin-only] .btn.danger,body[data-admin-only] button.danger{background:#482b35!important;border:1px solid #79404b!important;color:#ffc0c8!important}
