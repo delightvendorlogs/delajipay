@@ -15,7 +15,10 @@ async function invoke(name,body){
 async function adminCheck(){
  const {data:{session},error}=await supabase.auth.getSession();
  if(error||!session){location.replace("login.html?next=admin-sms-board.html");throw new Error("Authentication required");}
- if(session.user.app_metadata?.role!=="admin"){location.replace("dashboard.html");throw new Error("Administrator access required");}
+ let isAdmin=session.user.app_metadata?.role==="admin";
+if(!isAdmin){try{const {data}=await supabase.rpc("is_admin");isAdmin=data===true||data==="true"||(Array.isArray(data)&&data.some(x=>x===true));}catch{}}
+if(!isAdmin){try{const {data:row}=await supabase.from("admin_users").select("user_id").eq("user_id",session.user.id).maybeSingle();isAdmin=!!row;}catch{}}
+if(!isAdmin){location.replace("dashboard.html");throw new Error("Administrator access required");}
 }
 function options(select,items,placeholder,value,label){
  select.replaceChildren(new Option(placeholder,""));
