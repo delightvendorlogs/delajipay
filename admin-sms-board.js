@@ -30,7 +30,7 @@ async function loadCountries(server,select){
  select.disabled=true;select.replaceChildren(new Option("Loading countries…",""));
  try{
   const data=await invoke("sparkle-sms-catalog",{action:"admin-countries",engine:engineFor(server)});
-  const list=data.countries||[];countryCache.set(select.id,list);options(select,list,"Choose country",x=>x.code,x=>x.flag+" "+x.name);select.disabled=!list.length;
+  const list=data.countries||[];countryCache.set(select.id,list);options(select,list,"Choose country",x=>x.code,x=>(x.flag?x.flag+" ":"")+x.name);select.disabled=!list.length;
   if(list.length)select.value=list[0].code;
   return list;
  }finally{select.disabled=false;}
@@ -64,7 +64,7 @@ async function loadServiceList(){
   const row=document.createElement("article");row.className="board-item";
   const detail=document.createElement("div"),name=document.createElement("strong"),meta=document.createElement("small"),state=document.createElement("span");
   name.textContent=service.name;meta.textContent="Service code: "+service.code;state.className="board-status "+(service.is_active===false?"off":"on");state.textContent=service.is_active===false?"Disabled":"Enabled";
-  detail.append(name,meta,state);
+  detail.append(name,meta);
   const actions=document.createElement("div");actions.className="board-item-actions";
   const toggle=document.createElement("button");toggle.type="button";toggle.className="btn secondary";toggle.textContent=service.is_active===false?"Enable service":"Disable service";
   toggle.addEventListener("click",async()=>{toggle.disabled=true;try{await saveBoard({kind:"service",server_key:server,country_iso:countrySelect.value,service_code:service.code,enabled:service.is_active===false});note(service.name+" availability saved.","success");await loadServiceList();}catch(e){note(e.message,"error");toggle.disabled=false;}});
