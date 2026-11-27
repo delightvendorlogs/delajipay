@@ -151,7 +151,7 @@ function renderCountries(){
  if(!filtered.length){countrySelect.disabled=true;const option=document.createElement("option");option.textContent="No matching countries";option.value="";countrySelect.append(option);}
  countryPicker?.render();
 }
-async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error){let detail="";try{const response=error.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();detail=payload?.error||payload?.message||"";}}}catch{}throw new Error(detail||error.message||"The request could not be completed.");}if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
+async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error){let detail="";try{const response=error.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();detail=payload?.error||payload?.message||"";}}catch{}throw new Error(detail||error.message||"The request could not be completed.");}if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
 const POPULAR_SERVICE_ORDER=["whatsapp","telegram","signal","instagram","facebook","tinder","cash app","google","tiktok","snapchat","x","discord"];
 function popularServiceRank(service){
  const name=String(service?.name||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
