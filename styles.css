@@ -187,3 +187,7 @@ table{width:100%;border-collapse:collapse}th{font-size:11px;letter-spacing:.8px;
 .customer-menu[open] .customer-menu-panel{animation:customerMenuIn .16s ease-out}
 @keyframes customerMenuIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 
+
+/* The shared drawer replaces the old mobile bottom navigation only on small screens. */
+.customer-menu{display:none}
+@media(max-width:650px){.customer-menu{display:block!important}}
