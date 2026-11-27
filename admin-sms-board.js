@@ -4,6 +4,7 @@ const $=id=>document.getElementById(id);
 const money=k=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",minimumFractionDigits:2}).format(Number(k||0)/100);
 let config={servers:{server1:{enabled:true},server2:{enabled:true,max_pools:100}},services:{},pools:{},server_pricing:{},pool_pricing:{}};
 const countryCache=new Map(),serviceCache=new Map();
+const serviceManagementSelect=document.createElement("select");serviceManagementSelect.id="service-management-internal";
 function note(message,kind="info"){const n=$("board-message");n.hidden=false;n.textContent=message;n.dataset.kind=kind;}
 async function invoke(name,body){
  const {data,error}=await supabase.functions.invoke(name,{body});
@@ -56,7 +57,7 @@ function renderServerConfig(){
 async function loadConfig(){const data=await invoke("sparkle-sms-orders",{action:"admin-board-get"});config=data.config||config;renderServerConfig();}
 async function loadServiceList(){
  const server=serverKeyFrom("service-server"),countrySelect=$("service-country");
- const services=await loadServices(server,countrySelect,$("price-service"));
+ const services=await loadServices(server,countrySelect,serviceManagementSelect);
  const box=$("service-list");box.replaceChildren();
  if(!services.length){const empty=document.createElement("div");empty.className="app-empty";empty.textContent="No live services were returned for this country. Check provider inventory and credentials.";box.append(empty);return;}
  for(const service of services){
@@ -69,8 +70,7 @@ async function loadServiceList(){
   toggle.addEventListener("click",async()=>{toggle.disabled=true;try{await saveBoard({kind:"service",server_key:server,country_iso:countrySelect.value,service_code:service.code,enabled:service.is_active===false});note(service.name+" availability saved.","success");await loadServiceList();}catch(e){note(e.message,"error");toggle.disabled=false;}});
   actions.append(state.cloneNode(true),toggle);row.append(detail,actions);box.append(row);
  }
- const priceServer=$("price-server").value,priceCountry=$("price-country").value;
- if(priceServer===server&&priceCountry===countrySelect.value)fillPriceForm();
+
 }
 function fillPriceForm(){
  const server=$("price-server").value,country=$("price-country").value,service=serviceByRef($("price-service"));
