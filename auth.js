@@ -168,7 +168,7 @@ async function refreshWalletUI() {
   ledgerBox.className = "ledger-list";
   for (const entry of entries) {
     const item = document.createElement("article");
-    item.className = "tile";
+    item.className = "tile wallet-ledger-item ledger-" + String(entry.entry_type || "other").toLowerCase();
     const title = document.createElement("b");
     title.textContent = entry.description || (
       entry.entry_type === "credit" ? "Wallet credit" :
@@ -404,7 +404,8 @@ if (!onAuthPage && !isAdminPage) {
     // Replace inconsistent text-only marks with the same compact brand lockup.
     const brand = (appHeader || topbar)?.querySelector(".app-brand, .brand");
     if (brand && !brand.querySelector(".app-brand-mark,.brand-mark")) {
-      const label = brand.textContent.trim().replace(/\\s+/g," ") || "BJVERIFY";
+      const originalWord = brand.childNodes[0]?.textContent?.trim() || "BJVERIFY";
+      const originalSuffix = brand.querySelector(":scope > span")?.textContent?.trim() || "";
       brand.replaceChildren();
       const mark = document.createElement("span");
       mark.className = appHeader ? "app-brand-mark" : "brand-mark";
@@ -412,7 +413,8 @@ if (!onAuthPage && !isAdminPage) {
       mark.innerHTML = '<svg viewBox="0 0 40 40"><rect x="10.5" y="3.5" width="19" height="33" rx="4.2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.5 8h9M17 31.5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m15.5 20.5 3.5 3.5 6.5-7" fill="none" stroke="#b9f5ff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const word = document.createElement("span");
       word.className = appHeader ? "app-brand-word" : "brand-word";
-      word.textContent = label;
+      word.textContent = originalWord;
+      if (originalSuffix) { const suffix = document.createElement("em"); suffix.className = "brand-light"; suffix.textContent = originalSuffix; word.append(" ",suffix); }
       brand.append(mark,word);
     }
   }
@@ -480,7 +482,7 @@ async function loadTransactions() {
     list.className = "transaction-list";
     for (const row of filtered) {
       const item = document.createElement("a");
-      item.className = "transaction-row";
+      item.className = "transaction-row transaction-" + String(row.entry_type || "other").toLowerCase();
       item.href = "transaction-details.html?id=" + encodeURIComponent(row.id);
       const left = document.createElement("div");
       left.className = "transaction-main";
