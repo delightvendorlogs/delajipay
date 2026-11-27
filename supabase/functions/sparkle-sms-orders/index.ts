@@ -211,7 +211,9 @@ async function resolveServiceRef(token:string,catalogue:string,country:string){
   const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromBase64Url(ivPart)},key,fromBase64Url(encryptedPart));
   data=JSON.parse(new TextDecoder().decode(plain));
  }catch{throw new Error("Choose a valid service.");}
- if(!data||data.country!==country||!data.code||!data.name||Date.now()-Number(data.issued)>30*60*1000)throw new Error("Please refresh the service list and choose again.");
+ // Service references are AES-GCM encrypted and only accepted after the signed-in user is verified.
+ // Do not expire them on a short timer: a customer may keep the number page open while choosing a service.
+ if(!data||data.country!==country||!data.code||!data.name||!Number.isFinite(Number(data.issued)))throw new Error("Please refresh the service list and choose again.");
  const expected=catalogue==="usa"&&country==="US"?"textverified":catalogue==="all"&&data.provider==="smsbower"?"smsbower":catalogue==="all"&&country==="US"?"fetchsms":catalogue==="all"?"virtualsms":"";
  if(!expected||data.provider!==expected)throw new Error("That service is not available in this destination.");
  return {provider:expected,code:String(data.code),name:String(data.name)};
