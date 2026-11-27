@@ -253,3 +253,14 @@ body:not(.bjverify-app) .tile{border:1px solid #2b4261;background:#10213b;border
 .ledger-entry-main b{font-size:13px;color:#edf6ff;overflow-wrap:anywhere}
 .ledger-entry-main small{font-size:10px;color:#94aaca;overflow-wrap:anywhere}
 .ledger-entry-link>strong{margin-left:auto;text-align:right}
+
+/* Readability corrections for retained light cards on the dark customer shell. */
+body:not(.bjverify-site) .referral-stat{background:linear-gradient(145deg,#122541,#0d1a30)!important;border-color:#2b4261!important;color:#eaf3ff!important}
+body:not(.bjverify-site) .support-card,body:not(.bjverify-site) .support-ticket{background:linear-gradient(145deg,#122541,#0d1a30)!important;border-color:#2b4261!important;color:#eaf3ff!important}
+body:not(.bjverify-site) .support-ticket.active{background:#183b53!important;border-color:#55bcd9!important;color:#eafaff!important}
+body:not(.bjverify-site) .support-ticket small,body:not(.bjverify-site) .support-card .muted{color:#9aabc4!important}
+body:not(.bjverify-site) .danger-button{background:#3b2029!important;border-color:#79404b!important;color:#ffc0c8!important}
+body:not(.bjverify-site) .chat-attach{background:#1b3552!important;border-color:#426080!important;color:#eaf3ff!important}
+body:not(.bjverify-site) .chat-box{background:#0b1a2d!important;border-color:#2b4261!important}
+body:not(.bjverify-site) .chat-composer-bar{background:#0a1830!important;border-color:#38516f!important}
+body:not(.bjverify-site) .chat-composer-bar textarea{background:transparent!important;border:0!important;color:#eef6ff!important}
