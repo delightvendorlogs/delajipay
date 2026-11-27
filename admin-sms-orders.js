@@ -3,7 +3,10 @@ const supabase=createClient("https://fgkkzxfaxgkkcbkwbamx.supabase.co","sb_publi
 const $=id=>document.getElementById(id),money=k=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",minimumFractionDigits:2}).format(Number(k||0)/100),date=v=>v?new Date(v).toLocaleString("en-NG",{dateStyle:"medium",timeStyle:"short"}):"—";
 const {data:{session},error:authError}=await supabase.auth.getSession();
 if(authError||!session){location.replace("login.html?next=admin-sms-orders.html");throw new Error("Authentication required");}
-if(session.user.app_metadata?.role!=="admin"){location.replace("dashboard.html");throw new Error("Administrator access required");}
+let isAdmin=session.user.app_metadata?.role==="admin";
+if(!isAdmin){try{const {data}=await supabase.rpc("is_admin");isAdmin=data===true||data==="true"||(Array.isArray(data)&&data.some(x=>x===true));}catch{}}
+if(!isAdmin){try{const {data:row}=await supabase.from("admin_users").select("user_id").eq("user_id",session.user.id).maybeSingle();isAdmin=!!row;}catch{}}
+if(!isAdmin){location.replace("dashboard.html");throw new Error("Administrator access required");}
 let allOrders=[];
 function notice(message,kind="info"){const n=$("sms-orders-message");n.hidden=false;n.textContent=message;n.dataset.kind=kind;}
 function render(){
