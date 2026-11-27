@@ -187,7 +187,10 @@ async function refreshWalletUI() {
     const details = document.createElement("a");
     details.className = "ledger-entry-link";
     details.href = "transaction-details.html?id=" + encodeURIComponent(entry.id);
-    details.append(title, meta, amount);
+    const summary = document.createElement("span");
+    summary.className = "ledger-entry-main";
+    summary.append(title, meta);
+    details.append(summary, amount);
     item.append(details);
     ledgerBox.append(item);
   }
