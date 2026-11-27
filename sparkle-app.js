@@ -264,6 +264,20 @@ servicePicker=mountSearchPicker("service-search","service-picker-list",()=>servi
 serviceSelect?.addEventListener("change",()=>{const service=serviceResults.find(s=>s.ref===serviceSelect.value);selectedService=service||null;if(service)renderSelectedService();else note(providersBox,"Choose a service from the dropdown above.");});
 const dashboardSearch=document.querySelector("#dashboard-number-search");dashboardSearch?.addEventListener("keydown",event=>{if(event.key==="Enter")location.href="numbers.html?tab=all&q="+encodeURIComponent(dashboardSearch.value);});
 if(countrySelect){const params=new URLSearchParams(location.search);setCatalog(params.get("tab")==="all"?"all":"usa");if(params.get("tab")==="all"){const q=params.get("q")||"",search=document.querySelector("#country-search");if(search){search.value=q;renderCountries();countryPicker?.render();}}}
+async function syncAdminServerVisibility(){
+ const tabs=[...document.querySelectorAll("[data-engine-tab]")];if(!tabs.length)return;
+ try{
+  const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"board-status"}});
+  if(error||!data?.servers)return;
+  const enabled1=data.servers.server1!==false,enabled2=data.servers.server2!==false;
+  tabs.forEach(button=>{const enabled=button.dataset.engineTab==="2"?enabled2:enabled1;button.hidden=!enabled;button.disabled=!enabled;});
+  if(activeCatalog==="all"&&((activeEngine==="1"&&!enabled1)||(activeEngine==="2"&&!enabled2))){
+   if(enabled1||enabled2)setEngine(enabled1?"1":"2");
+   else {fillSelect(countrySelect,[],"Both servers are currently unavailable",x=>x.code,x=>x.name,true);note(providersBox,"All-country number services are temporarily unavailable. Please check back later.");}
+  }
+ }catch(error){console.warn("SMS server availability could not be checked:",error);}
+}
+void syncAdminServerVisibility();
 let inboxPollTimer=null,inboxPolling=false;
 async function loadSmsOrders(){
  const box=document.querySelector("#sms-orders");if(!box)return;
