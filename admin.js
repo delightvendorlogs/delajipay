@@ -62,7 +62,7 @@ async function loadOverview() {
     const server1 = config.servers?.server1?.enabled !== false;
     const server2 = config.servers?.server2?.enabled !== false;
     const routes = [
-      { name: "USA tab · TestVerified", detail: "Dedicated USA catalogue", enabled: true },
+      { name: "USA tab · TestVerified", detail: "Dedicated USA catalogue · separate from All Countries", enabled: true, statusLabel: "Fixed route" },
       { name: "All Countries · Server 1", detail: "VirtualSMS international · FetchSMS for USA", enabled: server1 },
       { name: "All Countries · Server 2", detail: "SMSBower pool inventory", enabled: server2 }
     ];
@@ -72,7 +72,7 @@ async function loadOverview() {
       const name = document.createElement("strong"); name.textContent = route.name;
       const meta = document.createElement("small"); meta.textContent = route.detail;
       detail.append(name, meta);
-      const status = document.createElement("span"); status.className = "pill " + (route.enabled ? "active" : "inactive"); status.textContent = route.enabled ? "Enabled" : "Disabled";
+      const status = document.createElement("span"); status.className = "pill " + (route.enabled ? "active" : "inactive"); status.textContent = route.statusLabel || (route.enabled ? "Enabled" : "Disabled");
       item.append(detail, status); serviceList.append(item);
     }
   }
