@@ -170,3 +170,20 @@ table{width:100%;border-collapse:collapse}th{font-size:11px;letter-spacing:.8px;
 
 /* Keep the profile page clear on small screens: no fixed bottom tab strip. */
 @media(max-width:650px){body.profile-page{padding-bottom:24px!important}body.profile-page .topbar .app-nav{display:none!important}}
+
+
+/* BJVERIFY customer navigation: use a top drawer, not the old fixed white tab strip. */
+@media(max-width:650px){
+  body:has(.app-nav){padding-bottom:0!important}
+  .topbar{justify-content:space-between!important;padding:0 16px!important}
+  .topbar .app-nav{display:none!important}
+  .topbar .customer-menu{display:block!important;order:-1;margin:0 12px 0 0!important}
+  .topbar .brand{margin-right:auto}
+  body.profile-page .topbar .customer-menu{display:block!important}
+  body.profile-page .topbar .app-nav{display:none!important}
+}
+.customer-menu-backdrop{position:fixed;inset:0;z-index:58;background:#07142666}
+.customer-menu-panel{z-index:60}
+.customer-menu[open] .customer-menu-panel{animation:customerMenuIn .16s ease-out}
+@keyframes customerMenuIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+
