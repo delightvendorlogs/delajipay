@@ -174,3 +174,6 @@ body:not(.bjverify-site) a{color:#76dff4}
 .search-picker-list:not([hidden]){display:block!important;position:relative;top:auto;left:auto;right:auto;margin-top:7px;max-height:42vh;min-height:42px;overflow-y:auto}
 .search-picker-list[hidden]{display:none!important}
 .search-picker-option{position:relative;z-index:1;touch-action:manipulation}
+
+/* Compact SMSBower pool selector */
+.sms-pool-options{display:grid;gap:10px;margin:12px 0;width:100%}.sms-pool-current{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--app-border,rgba(255,255,255,.14));border-radius:12px;background:var(--app-card,rgba(255,255,255,.04));}.sms-pool-current-label{font-size:.92rem;font-weight:600;line-height:1.4}.sms-pool-change{flex:0 0 auto;border:0;background:transparent;color:var(--app-accent,#b9f5ff);font:inherit;font-size:.86rem;font-weight:700;padding:6px 2px;cursor:pointer}.sms-pool-choices{display:grid;gap:8px}.sms-pool-choices[hidden]{display:none}.sms-pool-option{width:100%;text-align:left;padding:11px 13px;border:1px solid var(--app-border,rgba(255,255,255,.14));border-radius:10px;background:var(--app-card,rgba(255,255,255,.04));color:inherit;font:inherit;cursor:pointer}.sms-pool-change:disabled,.sms-pool-option:disabled{opacity:.55;cursor:wait}
