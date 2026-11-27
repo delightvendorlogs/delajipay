@@ -9,6 +9,7 @@ let countries=[],serviceResults=[],selectedCountry="US",selectedCountryName="Uni
 let activeEngine="1";
 
 const money=kobo=>new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:2}).format(Number(kobo||0)/100);
+function safeCustomerError(error){const message=String(error?.message||"");if(/out of stock|no numbers? available|sold out|temporarily unavailable/i.test(message))return "Number currently unavailable. Please try again.";if(/fetchsms|textverified|virtualsms|smsbower|provider|api key|credential|service code|country id|http\s*\d{3}/i.test(message))return "We could not complete that request. Please try again.";return message||"We could not complete that request. Please try again.";}
 function note(parent,message){if(!parent)return;const p=document.createElement("div");p.className="app-empty";p.textContent=message;parent.replaceChildren(p);}
 function fillSelect(select,items,placeholder,valueOf,labelOf,disabled=false){
  if(!select)return;select.replaceChildren();const first=document.createElement("option");first.value="";first.textContent=placeholder;select.append(first);
@@ -108,7 +109,7 @@ function renderCountries(){
  if(!filtered.length){countrySelect.disabled=true;const option=document.createElement("option");option.textContent="No matching countries";option.value="";countrySelect.append(option);}
  countryPicker?.render();
 }
-async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error){let detail="";try{const response=error.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();detail=payload?.error||payload?.message||"";}}catch{}throw new Error(detail||error.message||"The request could not be completed.");}if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
+async function invokeOrder(body,headers={}){const {data,error}=await supabase.functions.invoke("sparkle-sms-orders",{body,headers});if(error){let detail="";try{const response=error.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();detail=payload?.error||payload?.message||"";}}catch{}throw new Error(detail||safeCustomerError(error));}if(data?.success===false)throw new Error(data.error||"The request could not be completed.");return data;}
 const POPULAR_SERVICE_ORDER=["whatsapp","telegram","signal","instagram","facebook","tinder","cash app","google","tiktok","snapchat","x","discord"];
 function popularServiceRank(service){
  const name=String(service?.name||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
@@ -140,7 +141,7 @@ function sortServicesPopularFirst(services){
 function renderServices(data){
  if(!providersBox)return;serviceResults=sortServicesPopularFirst(data.services||[]);
  const q=(document.querySelector("#service-search")?.value||"").trim().toLowerCase();
- if(description)description.textContent=serviceResults.length+" services received from "+(activeEngine==="1"&&activeCatalog==="all"&&selectedCountry==="US"?"FetchSMS":activeEngine==="2"?"SMSBower":activeCatalog==="usa"?"TextVerified":"the selected provider")+". Choose one to check its price and availability.";
+ if(description)description.textContent=serviceResults.length+" services available. Choose one to view its price and continue.";
  const services=serviceResults.filter(s=>!q||String(s.name).toLowerCase().includes(q));
  const previous=serviceSelect?.value||"";
  fillSelect(serviceSelect,services,"Select a service",s=>s.ref,s=>s.name+(s.available===false?" · Out of stock":s.available_count!==null&&s.available_count!==undefined?" · "+s.available_count+" available":""),!services.length);
@@ -156,7 +157,7 @@ function renderSelectedService(){
  const card=document.createElement("div");card.className="catalogue-selected-service";
  const details=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("small");
  appendServiceIcon(title,service);title.append(document.createTextNode(service.name));
- meta.textContent=activeCatalog==="usa"?"Check the live TextVerified price and availability before purchase":service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" numbers currently available":"Availability is checked again before purchase";
+ meta.textContent=service.available===false?"Currently unavailable":service.available_count!==null&&service.available_count!==undefined?service.available_count+" numbers currently available":"Check the current price before purchase";
  details.append(title,meta);
  const actions=document.createElement("div");actions.className="catalogue-service-actions";
  const quoteButton=document.createElement("button");quoteButton.type="button";quoteButton.className="app-button secondary";quoteButton.textContent="View price";quoteButton.disabled=activeCatalog!=="usa"&&service.available===false;
@@ -198,7 +199,7 @@ function renderSelectedService(){
         const tag=button.querySelector(".sms-pool-selected");if(tag)tag.textContent=active?"Selected":"Select";
        });
        result.textContent="Price "+money(quote.customer_price_kobo);
-      }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
+      }catch(error){result.textContent=safeCustomerError(error);}
       finally{poolButtons.forEach(button=>button.disabled=false);}
      });
      option.dataset.poolId=String(pool.id);poolButtons.push(option);poolGrid.append(option);
@@ -211,9 +212,9 @@ function renderSelectedService(){
     if(!await askConfirm({title:"Confirm number purchase",message:"Get a "+selectedCountryName+" number for "+service.name+" at "+money(quote.customer_price_kobo)+"?",note:"Your wallet will only be charged if the provider confirms the order.",confirmText:"Continue to buy"}))return;
     buy.disabled=true;buy.textContent="Processing…";
     try{const purchase=await invokeOrder({action:"purchase",catalogue:activeCatalog,country_iso:selectedCountry,country_name:selectedCountryName,service_ref:service.ref,pool_id:selectedPoolId,engine:activeEngine},{"Idempotency-Key":crypto.randomUUID()});result.textContent=purchase.order?.phone_number?"Your number: "+purchase.order.phone_number:"Your number request is being confirmed.";buy.textContent="Open SMS inbox";buy.disabled=false;buy.onclick=()=>location.href="inbox.html";}
-    catch(error){result.textContent=error.message||"The request could not be completed.";buy.disabled=false;buy.textContent="Try again";}
+    catch(error){result.textContent=safeCustomerError(error);buy.disabled=false;buy.textContent="Try again";}
    };
-  }catch(error){result.textContent=error.message||"Price is temporarily unavailable.";}
+  }catch(error){result.textContent=safeCustomerError(error);}
   finally{quoteButton.textContent="Refresh price";quoteButton.disabled=false;}
  });
  if(activeEngine==="2"){quoteButton.hidden=true;queueMicrotask(()=>quoteButton.click());}actions.append(quoteButton,result);card.append(details,actions);providersBox.append(card);

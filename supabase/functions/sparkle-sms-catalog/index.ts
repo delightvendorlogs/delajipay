@@ -206,7 +206,7 @@ async function services(country: string, mode: string, includeProviderCode = fal
     data = { services: rows(serviceData).filter((item:any)=>supportedCodes.has(str(item?.service_id,item?.serviceId,item?.service_code,item?.code,item?.id).toLowerCase())) };
   }
   else throw new Error("Choose a valid number destination.");
-  const normalized = rows(data).map(normalizeService).filter(Boolean);
+  const normalized = (provider === "fetchsms" ? rows(data).map((item:any)=>normalizeService({...item,service_code:str(item?.id,item?.service_id,item?.serviceId,item?.service_code,item?.code,item?.slug)})) : rows(data).map(normalizeService)).filter(Boolean);
   const available = normalized;
   const publicServices = await Promise.all(available.map(async (item:any)=>({ref:await serviceRef(provider,code,item.code,item.name),name:item.name,icon:item.icon,available:provider==="textverified"?true:item.available,available_count:provider==="textverified"?null:item.available_count,...(includeProviderCode?{code:item.code}: {})})));
   return { success:true, services:publicServices };

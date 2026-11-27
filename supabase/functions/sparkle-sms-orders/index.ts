@@ -113,22 +113,18 @@ async function quote(provider:string,country:string,service:string,serviceName:s
   if(["fetchsms","textverified"].includes(provider)&&country!=="US")throw new Error("This provider only supplies United States numbers.");
   let providerUsd=0,available=true,availabilityCount:number|null=null;
   if(provider==="fetchsms"){
-    if(!/^\d+$/.test(service))throw new Error("This USA service is not available for purchase. Please choose another service.");
-    const [q,catalog,fx]=await Promise.all([
+    if(!/^\d+$/.test(service))throw new Error("Please refresh the service list and choose a service again.");
+    // Catalogue stock counts can lag. The live purchase endpoint is the stock authority.
+    const [q,fx]=await Promise.all([
       fetchRequest("/services/quote?service="+encodeURIComponent(service)+"&mode=short",{},false),
-      fetchRequest("/services",{},false),
       fxRate()
     ]);
-    const item=rows(catalog).find((x:any)=>String(x.id)===service);
-    if(!item)throw new Error("This Fetch SMS service is no longer listed. Please refresh the service list.");
-    availabilityCount=item.short_available==null?null:num(item.short_available,-1);
-    available=availabilityCount===null||availabilityCount>0;
     providerUsd=num(q?.total_cents,-1)/100;
-    if(providerUsd<0)throw new Error("Fetch SMS did not return a valid price.");
+    if(providerUsd<0)throw new Error("The selected service price is temporarily unavailable.");
     const rule=await pricingRule(provider,country,service);
     const providerCostNgn=providerUsd*fx;
     const customerPriceKobo=rule?.pricing_mode==="fixed"&&rule.fixed_price_kobo?num(rule.fixed_price_kobo):Math.ceil(providerCostNgn*(1+num(rule?.markup_percent,100)/100)*100);
-    return {provider,providerUsd,fx,providerCostKobo:Math.ceil(providerCostNgn*100),customerPriceKobo,markupPercent:num(rule?.markup_percent,100),available,availabilityCount,serviceName:str(item?.name,item?.slug,service)};
+    return {provider,providerUsd,fx,providerCostKobo:Math.ceil(providerCostNgn*100),customerPriceKobo,markupPercent:num(rule?.markup_percent,100),available:true,availabilityCount:null,serviceName:serviceName||service};
   }
   if(provider==="textverified"){
     const result=await tvRequest("/pricing/verifications",{method:"POST",body:JSON.stringify({serviceName:serviceName||service,areaCode:false,carrier:false,numberType:"mobile",capability:"sms"})});
