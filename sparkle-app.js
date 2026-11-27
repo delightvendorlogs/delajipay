@@ -178,17 +178,36 @@ function renderSelectedService(){
     poolHeading.append(poolTitle,poolHint);
     const poolGrid=document.createElement("div");poolGrid.className="sms-pool-grid";
     const poolButtons=[];
+    const selectedSummary=document.createElement("div");selectedSummary.className="sms-pool-current";selectedSummary.hidden=true;
+    const selectedInfo=document.createElement("div");selectedInfo.className="sms-pool-current-info";
+    const selectedName=document.createElement("strong");const selectedMeta=document.createElement("small");
+    selectedInfo.append(selectedName,selectedMeta);
+    const changePool=document.createElement("button");changePool.type="button";changePool.className="app-button secondary sms-pool-change";changePool.textContent="Change pool";
+    selectedSummary.append(selectedInfo,changePool);
+    const renderChosenPool=()=>{
+     const chosen=quote.pools.find(item=>String(item.id)===String(selectedPoolId));
+     if(!chosen)return;
+     selectedName.textContent=chosen.label||"Selected pool";
+     selectedMeta.textContent=money(chosen.customerPriceKobo)+" · "+Number(chosen.stock).toLocaleString()+" numbers available";
+     selectedSummary.hidden=false;poolGrid.hidden=true;
+     poolTitle.textContent="Selected pool";
+     poolHint.textContent="Your selected option is ready. You can change it at any time.";
+     changePool.hidden=false;
+    };
     quote.pools.forEach((pool,index)=>{
      const option=document.createElement("button");option.type="button";option.className="sms-pool-option";option.setAttribute("aria-pressed",String(String(pool.id)===String(selectedPoolId)));
      const top=document.createElement("span");top.className="sms-pool-option-top";
      const name=document.createElement("strong");name.textContent=pool.label||("Pool "+(index+1));
-     const selected=document.createElement("span");selected.className="sms-pool-selected";selected.textContent=String(pool.id)===String(selectedPoolId)?"Selected":"Select";
+     const selected=document.createElement("span");selected.className="sms-pool-selected";selected.textContent=String(pool.id)===String(selectedPoolId)?"Recommended":"Select";
      top.append(name,selected);
      const price=document.createElement("strong");price.className="sms-pool-price";price.textContent=money(pool.customerPriceKobo);
      const stock=document.createElement("small");stock.className="sms-pool-stock";stock.textContent=Number(pool.stock).toLocaleString()+" numbers available";
      option.append(top,price,stock);
      option.addEventListener("click",async()=>{
-      if(String(pool.id)===String(selectedPoolId))return;
+      if(option.disabled)return;
+      if(String(pool.id)===String(selectedPoolId)){
+       renderChosenPool();return;
+      }
       poolButtons.forEach(button=>button.disabled=true);
       try{
        const nextQuote=await invokeOrder({action:"quote",catalogue:activeCatalog,country_iso:selectedCountry,service_ref:service.ref,pool_id:pool.id,engine:activeEngine});
@@ -199,12 +218,18 @@ function renderSelectedService(){
         const tag=button.querySelector(".sms-pool-selected");if(tag)tag.textContent=active?"Selected":"Select";
        });
        result.textContent="Price "+money(quote.customer_price_kobo);
+       renderChosenPool();
       }catch(error){result.textContent=safeCustomerError(error);}
       finally{poolButtons.forEach(button=>button.disabled=false);}
      });
      option.dataset.poolId=String(pool.id);poolButtons.push(option);poolGrid.append(option);
     });
-    poolPicker.append(poolHeading,poolGrid);actions.insertBefore(poolPicker,result);result.textContent="Price "+money(quote.customer_price_kobo);
+    changePool.addEventListener("click",()=>{
+     selectedSummary.hidden=true;poolGrid.hidden=false;
+     poolTitle.textContent="Choose a number pool";
+     poolHint.textContent="Compare the price and available numbers, then select the option you prefer.";
+    });
+    poolPicker.append(poolHeading,selectedSummary,poolGrid);actions.insertBefore(poolPicker,result);result.textContent="Price "+money(quote.customer_price_kobo);actions.insertBefore(poolPicker,result);result.textContent="Price "+money(quote.customer_price_kobo);
    }
    let buy=actions.querySelector("[data-buy-service]");
    if(!buy){buy=document.createElement("button");buy.type="button";buy.className="app-button";buy.dataset.buyService="true";buy.textContent="Get this number";actions.append(buy);}
