@@ -1,4 +1,4 @@
-const adminLinks=[["admin.html","Overview"],["admin-customers.html","Customers"],["admin-wallets.html","Wallets"],["admin-customer-details.html","Customer account"],["admin-sms-orders.html","SMS orders"],["admin-sms-board.html","SMS board management"],["admin-providers.html","Providers"],["admin-pricing.html","SMS pricing"],["admin-settings.html","Platform settings"],["admin-support.html","Support inbox"],["admin-notifications.html","Notifications"]];
+const adminLinks=[["admin.html","Overview"],["admin-customers.html","Customers"],["admin-wallets.html","Wallets"],["admin-sms-orders.html","SMS orders"],["admin-sms-board.html","SMS board management"],["admin-providers.html","Providers"],["admin-pricing.html","SMS pricing"],["admin-settings.html","Platform settings"],["admin-support.html","Support inbox"],["admin-notifications.html","Notifications"]];
 const header=document.querySelector(".topbar,.app-header");
 if(header&&!header.querySelector(".admin-nav-menu")){
  const details=document.createElement("details");details.className="admin-nav-menu";
