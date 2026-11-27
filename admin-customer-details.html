@@ -52,4 +52,4 @@ async function load(){
  else orders.forEach(x=>row(orderBody,[x.service_code,money(x.amount_kobo),x.status,x.customer_reference||x.provider_reference||x.id,typeof x.recipient==="object"?JSON.stringify(x.recipient):x.recipient,date(x.created_at)]));
 }
 load().catch(error=>{console.error(error);note(error.message||"Unable to load this customer's account details. Check administrator permissions.");});
-</script><script type="module" src="admin-nav.js?v=admin-nav-v1-20261127"></script></body></html>
+</script><script type="module" src="admin-nav.js?v=admin-nav-v2-20261127"></script></body></html>
