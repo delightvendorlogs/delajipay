@@ -346,80 +346,110 @@ if (updatePasswordForm) {
   });
 }
 
-// Shared customer navigation: one menu across the legacy and app-style page shells.
-const customerMenuLinks = [
-  ["dashboard.html","Dashboard"],["numbers.html","Buy a number"],["inbox.html","SMS inbox"],
-  ["wallet.html","Wallet"],["wallet-history.html","Wallet activity"],["transactions.html","Transactions"],
-  ["notifications.html","Notifications"],["support.html","Live chat support"],["referrals.html","Refer & earn"],
-  ["profile.html","Profile"]
-];
+// One consistent customer header, copied from the approved dashboard layout.
 const currentCustomerFile = (window.location.pathname.split("/").pop() || "dashboard.html").toLowerCase();
 const isAdminPage = document.body.dataset.adminOnly === "true";
 if (!onAuthPage && !isAdminPage) {
-  const appHeader = document.querySelector(".app-header");
-  const topbar = document.querySelector(".topbar");
-  const nav = (appHeader || topbar)?.querySelector(".app-nav");
-  if (nav) {
-    // Ensure every app-shell hamburger actually opens the navigation.
-    const appToggle = appHeader?.querySelector(".app-mobile-menu");
-    if (appToggle) {
-      appToggle.addEventListener("click", () => {
-        const open = nav.classList.toggle("open");
-        appToggle.setAttribute("aria-expanded", String(open));
-        appToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
-        appToggle.textContent = open ? "×" : "☰";
-      });
-    }
-    // Add quick destinations to the existing app navigation without duplicating links.
-    if (appHeader) {
-      for (const [href,label] of customerMenuLinks) {
-        if (!nav.querySelector('a[href="' + href + '"]')) {
-          const link = document.createElement("a");
-          link.href = href;
-          link.textContent = label;
-          nav.insertBefore(link, nav.querySelector("[data-signout]") || null);
-        }
-      }
-    }
-    if (topbar && !topbar.querySelector(".customer-menu")) {
-      const details = document.createElement("details");
-      details.className = "customer-menu";
-      details.innerHTML = '<summary aria-label="Open menu" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menu</span></summary><div class="customer-menu-backdrop"></div><div class="customer-menu-panel"><div class="customer-menu-title">BJVERIFY MENU</div></div>';
-      const panel = details.querySelector(".customer-menu-panel");
-      for (const [href,label] of customerMenuLinks) {
-        const link = document.createElement("a");
-        link.href = href;
-        link.textContent = label;
-        if (href === currentCustomerFile || (currentCustomerFile.startsWith("wallet") && href === "wallet.html") || (currentCustomerFile.startsWith("transaction") && href === "transactions.html")) link.setAttribute("aria-current","page");
-        panel.append(link);
-      }
-      const divider = document.createElement("div");
-      divider.className = "customer-menu-divider";
-      panel.append(divider);
-      const signout = document.createElement("button");
-      signout.type = "button";
-      signout.dataset.signout = "";
-      signout.textContent = "Sign out";
-      panel.append(signout);
-      details.querySelector(".customer-menu-backdrop").addEventListener("click", () => { details.open = false; });
-      topbar.insertBefore(details, topbar.firstChild);
-    }
-    // Replace inconsistent text-only marks with the same compact brand lockup.
-    const brand = (appHeader || topbar)?.querySelector(".app-brand, .brand");
-    if (brand && !brand.querySelector(".app-brand-mark,.brand-mark")) {
-      const originalWord = brand.childNodes[0]?.textContent?.trim() || "BJVERIFY";
-      const originalSuffix = brand.querySelector(":scope > span")?.textContent?.trim() || "";
+  const header = document.querySelector(".app-header, .topbar");
+  if (header) {
+    header.classList.remove("topbar");
+    header.classList.add("app-header");
+    document.body.classList.add("bjverify-app");
+
+    // Use the exact dashboard brand mark and wordmark on every customer page.
+    const brand = header.querySelector(".app-brand, .brand");
+    if (brand) {
+      brand.className = "app-brand";
       brand.replaceChildren();
       const mark = document.createElement("span");
-      mark.className = appHeader ? "app-brand-mark" : "brand-mark";
-      mark.setAttribute("aria-hidden","true");
+      mark.className = "app-brand-mark";
+      mark.setAttribute("aria-hidden", "true");
       mark.innerHTML = '<svg viewBox="0 0 40 40"><rect x="10.5" y="3.5" width="19" height="33" rx="4.2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.5 8h9M17 31.5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m15.5 20.5 3.5 3.5 6.5-7" fill="none" stroke="#b9f5ff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const word = document.createElement("span");
-      word.className = appHeader ? "app-brand-word" : "brand-word";
-      word.textContent = originalWord;
-      if (originalSuffix) { const suffix = document.createElement("em"); suffix.className = "brand-light"; suffix.textContent = originalSuffix; word.append(" ",suffix); }
-      brand.append(mark,word);
+      word.className = "app-brand-word";
+      word.textContent = "BJVERIFY";
+      brand.append(mark, word);
     }
+
+    // Keep the hamburger after the logo, never before it.
+    let toggle = header.querySelector(".app-mobile-menu");
+    if (!toggle) {
+      toggle = document.createElement("button");
+      header.insertBefore(toggle, brand ? brand.nextSibling : header.firstChild);
+    } else {
+      const freshToggle = toggle.cloneNode(true);
+      toggle.replaceWith(freshToggle);
+      toggle = freshToggle;
+      if (brand && brand.nextSibling !== toggle) brand.after(toggle);
+    }
+    toggle.className = "app-mobile-menu";
+    toggle.type = "button";
+    toggle.textContent = "☰";
+    toggle.setAttribute("aria-label", "Open menu");
+    toggle.setAttribute("aria-expanded", "false");
+
+    let nav = header.querySelector(".app-nav");
+    if (!nav) {
+      nav = document.createElement("nav");
+      header.append(nav);
+    }
+    nav.className = "app-nav";
+    nav.setAttribute("aria-label", "Main navigation");
+    nav.replaceChildren();
+
+    const activeSection = currentCustomerFile.startsWith("wallet") ? "wallet.html"
+      : currentCustomerFile.startsWith("transaction") ? "transactions.html"
+      : currentCustomerFile === "dashboard.html" ? "dashboard.html"
+      : currentCustomerFile === "numbers.html" ? "numbers.html"
+      : currentCustomerFile === "inbox.html" ? "inbox.html"
+      : currentCustomerFile === "profile.html" ? "profile.html" : "";
+
+    const links = [
+      ["dashboard.html", "Dashboard"],
+      ["numbers.html", "Buy a number"],
+      ["inbox.html", "SMS inbox"],
+      ["wallet.html", "Wallet"],
+      ["transactions.html", "Activity"],
+      ["profile.html", "Profile"]
+    ];
+    for (const [href, label] of links) {
+      const link = document.createElement("a");
+      link.href = href;
+      link.textContent = label;
+      if (href === activeSection) link.setAttribute("aria-current", "page");
+      nav.append(link);
+    }
+    const signout = document.createElement("button");
+    signout.type = "button";
+    signout.className = "nav-signout";
+    signout.dataset.signout = "";
+    signout.textContent = "Sign out";
+    nav.append(signout);
+
+    const closeMenu = () => {
+      nav.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-label", "Open menu");
+      toggle.textContent = "☰";
+    };
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const open = !nav.classList.contains("open");
+      nav.classList.toggle("open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+      toggle.textContent = open ? "×" : "☰";
+    });
+    nav.addEventListener("click", (event) => {
+      if (event.target.closest("a, [data-signout]")) closeMenu();
+    });
+    document.addEventListener("click", (event) => {
+      if (!header.contains(event.target)) closeMenu();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
+    });
   }
 }
 
