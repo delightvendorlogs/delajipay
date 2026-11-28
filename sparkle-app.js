@@ -275,7 +275,8 @@ async function syncAdminServerVisibility(){
  try{
   const {data,error}=await supabase.functions.invoke("sparkle-sms-catalog",{body:{action:"board-status"}});
   if(error||!data?.servers)return;
-  const enabled1=data.servers.server1!==false,enabled2=data.servers.server2!==false;\n  window.__bjverifyServerAvailability={server1:enabled1,server2:enabled2};
+  const enabled1=data.servers.server1!==false,enabled2=data.servers.server2!==false;
+  window.__bjverifyServerAvailability={server1:enabled1,server2:enabled2};
   tabs.forEach(button=>{const enabled=button.dataset.engineTab==="2"?enabled2:enabled1;button.hidden=!enabled;button.disabled=!enabled;});
   if(activeCatalog==="all"&&((activeEngine==="1"&&!enabled1)||(activeEngine==="2"&&!enabled2))){
    if(enabled1||enabled2)setEngine(enabled1?"1":"2");
