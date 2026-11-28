@@ -409,7 +409,11 @@ if (!onAuthPage && !isAdminPage) {
       ["numbers.html", "Buy a number"],
       ["inbox.html", "SMS inbox"],
       ["wallet.html", "Wallet"],
-      ["transactions.html", "Activity"],
+      ["wallet-history.html", "Wallet activity"],
+      ["transactions.html", "Transactions"],
+      ["notifications.html", "Notifications"],
+      ["support.html", "Live chat support"],
+      ["referrals.html", "Refer & earn"],
       ["profile.html", "Profile"]
     ];
     for (const [href, label] of links) {
